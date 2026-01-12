@@ -1,6 +1,9 @@
 <?php
 // config.php
 
+// Start output buffering untuk mencegah "headers already sent" error
+ob_start();
+
 // Set timezone ke Asia/Jakarta (WIB) agar sesuai dengan waktu lokal
 date_default_timezone_set('Asia/Jakarta');
 

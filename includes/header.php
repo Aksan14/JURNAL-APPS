@@ -4,6 +4,9 @@ File: includes/header.php
 Deskripsi: Bagian header template, termasuk navbar dan pemanggilan sidebar dinamis.
 */
 
+// Start output buffering untuk mencegah "headers already sent" error
+ob_start();
+
 // Panggil config.php SEBELUM output HTML apapun untuk memulai session & BASE_URL
 // Pastikan path ini benar relatif terhadap file yang memanggil header.php
 // Menggunakan __DIR__ memastikan path absolut dari lokasi header.php
