@@ -51,14 +51,21 @@ global $current_page;
 
     <li class="nav-item-header">Alat & Laporan</li>
     <?php
-    // Hitung jumlah jurnal yang belum diisi hari ini
+    // Hitung jumlah jurnal yang belum diisi hari ini (hanya jadwal untuk hari ini)
+    $hari_map_sidebar = [
+        'Monday' => 'Senin', 'Tuesday' => 'Selasa', 'Wednesday' => 'Rabu',
+        'Thursday' => 'Kamis', 'Friday' => 'Jumat', 'Saturday' => 'Sabtu', 'Sunday' => 'Minggu'
+    ];
+    $nama_hari_ini = $hari_map_sidebar[date('l')] ?? '';
+    
     $stmt_notif = $pdo->prepare("
         SELECT COUNT(*) FROM tbl_mengajar m
-        WHERE m.id NOT IN (
+        WHERE m.hari = ?
+        AND m.id NOT IN (
             SELECT id_mengajar FROM tbl_jurnal WHERE tanggal = CURDATE()
         )
     ");
-    $stmt_notif->execute();
+    $stmt_notif->execute([$nama_hari_ini]);
     $jumlah_belum_isi = $stmt_notif->fetchColumn();
     ?>
     <li class="nav-item">

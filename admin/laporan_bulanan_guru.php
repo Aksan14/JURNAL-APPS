@@ -30,14 +30,12 @@ $filter_tahun = $_GET['tahun'] ?? date('Y');
 $tanggal_mulai = date('Y-m-01', strtotime("$filter_tahun-$filter_bulan-01"));
 $tanggal_selesai = date('Y-m-t', strtotime("$filter_tahun-$filter_bulan-01"));
 
-// Hitung jumlah minggu dalam bulan
+// Hitung jumlah minggu dalam bulan (samakan dengan walikelas)
 $start_date = new DateTime($tanggal_mulai);
 $end_date = new DateTime($tanggal_selesai);
-$diff = $start_date->diff($end_date);
-$total_hari_filter = $diff->days + 1;
-$total_minggu_penuh = floor($total_hari_filter / 7);
+$total_minggu_penuh = max(1, floor($start_date->diff($end_date)->days / 7));
 
-// 3. Ambil SEMUA jadwal mengajar (dari tbl_mengajar) beserta info guru, mapel, kelas
+// 3. Ambil SEMUA jadwal mengajar beserta jam terlaksana (menggunakan query SQL langsung seperti di walikelas)
 $sql_roster = "
     SELECT 
         g.id AS id_guru,
@@ -45,37 +43,27 @@ $sql_roster = "
         m.id AS id_mengajar,
         mp.nama_mapel,
         k.nama_kelas,
-        m.jumlah_jam_mingguan AS jam_roster_mingguan
+        m.jumlah_jam_mingguan AS jam_roster_mingguan,
+        COALESCE(SUM(
+            CASE 
+                WHEN j.jam_ke LIKE '%-%' THEN 
+                    CAST(SUBSTRING_INDEX(j.jam_ke, '-', -1) AS UNSIGNED) - 
+                    CAST(SUBSTRING_INDEX(j.jam_ke, '-', 1) AS UNSIGNED) + 1
+                ELSE 
+                    CASE WHEN j.jam_ke IS NOT NULL AND j.jam_ke != '' THEN 1 ELSE 0 END
+            END
+        ), 0) as jam_terlaksana
     FROM tbl_mengajar m
     JOIN tbl_guru g ON m.id_guru = g.id
     JOIN tbl_mapel mp ON m.id_mapel = mp.id
     JOIN tbl_kelas k ON m.id_kelas = k.id
+    LEFT JOIN tbl_jurnal j ON j.id_mengajar = m.id AND j.tanggal BETWEEN ? AND ?
+    GROUP BY g.id, g.nama_guru, m.id, mp.nama_mapel, k.nama_kelas, m.jumlah_jam_mingguan
     ORDER BY g.nama_guru ASC, mp.nama_mapel ASC, k.nama_kelas ASC
 ";
-$semua_roster = $pdo->query($sql_roster)->fetchAll();
-
-// 4. Ambil data jurnal yang sudah diisi di bulan ini
-$sql_jurnal = "
-    SELECT 
-        j.id_mengajar,
-        j.jam_ke
-    FROM tbl_jurnal j
-    WHERE j.tanggal BETWEEN ? AND ?
-";
-$stmt_jurnal = $pdo->prepare($sql_jurnal);
-$stmt_jurnal->execute([$tanggal_mulai, $tanggal_selesai]);
-$data_jurnal = $stmt_jurnal->fetchAll();
-
-// Hitung total jam terlaksana per id_mengajar
-$jam_terlaksana_per_mengajar = [];
-foreach ($data_jurnal as $jurnal) {
-    $id_mengajar = $jurnal['id_mengajar'];
-    $jam = calculateHours($jurnal['jam_ke']);
-    if (!isset($jam_terlaksana_per_mengajar[$id_mengajar])) {
-        $jam_terlaksana_per_mengajar[$id_mengajar] = 0;
-    }
-    $jam_terlaksana_per_mengajar[$id_mengajar] += $jam;
-}
+$stmt_roster = $pdo->prepare($sql_roster);
+$stmt_roster->execute([$tanggal_mulai, $tanggal_selesai]);
+$semua_roster = $stmt_roster->fetchAll();
 
 // 5. Proses dan kelompokkan data per guru
 $hasil_rekap_detail = [];
@@ -86,7 +74,7 @@ foreach ($semua_roster as $roster) {
     $id_mengajar = $roster['id_mengajar'];
     $mapel_kelas = $roster['nama_mapel'] . ' - ' . $roster['nama_kelas'];
     $jam_roster = (int)$roster['jam_roster_mingguan'];
-    $jam_terlaksana = $jam_terlaksana_per_mengajar[$id_mengajar] ?? 0;
+    $jam_terlaksana = (int)$roster['jam_terlaksana']; // Ambil langsung dari query SQL
 
     // Inisialisasi data guru jika belum ada
     if (!isset($hasil_rekap_detail[$id_guru])) {

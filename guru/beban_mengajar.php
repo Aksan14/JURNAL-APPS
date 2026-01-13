@@ -52,7 +52,8 @@ $stmt_rekap = $pdo->prepare("
                 WHEN j.jam_ke LIKE '%-%' THEN 
                     CAST(SUBSTRING_INDEX(j.jam_ke, '-', -1) AS UNSIGNED) - 
                     CAST(SUBSTRING_INDEX(j.jam_ke, '-', 1) AS UNSIGNED) + 1
-                ELSE 1
+                ELSE 
+                    CASE WHEN j.jam_ke IS NOT NULL AND j.jam_ke != '' THEN 1 ELSE 0 END
             END
         ), 0) as jam_terlaksana,
         COUNT(j.id) as total_pertemuan

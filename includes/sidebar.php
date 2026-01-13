@@ -127,7 +127,7 @@ $current_page = basename($_SERVER['SCRIPT_NAME']);
     </li>
 </ul>
 
-        <?php // ======= MENU SISWA ======= ?>
+        <?php ?>
         <?php elseif ($role == 'siswa'): ?>
             <li class="nav-item">
                 <a class="nav-link <?php echo ($current_page == 'lihat_jurnal.php') ? 'active' : ''; ?>" 

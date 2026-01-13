@@ -682,6 +682,14 @@ document.getElementById('modalIsiJurnal').addEventListener('shown.bs.modal', fun
     validasiTanggalHari();
     cekJamKelas();
 });
+
+// Auto open modal jika ada parameter open_modal
+<?php if (isset($_GET['open_modal']) && $_GET['open_modal'] == '1'): ?>
+document.addEventListener('DOMContentLoaded', function() {
+    var modal = new bootstrap.Modal(document.getElementById('modalIsiJurnal'));
+    modal.show();
+});
+<?php endif; ?>
 </script>
 
 <?php require_once '../includes/footer.php'; ?>

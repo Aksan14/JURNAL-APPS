@@ -58,7 +58,7 @@ require_once '../includes/header.php';
             <h1 class="h3 mb-0 text-gray-800"><?= $greeting ?>, <strong><?= htmlspecialchars($guru['nama_guru']) ?></strong></h1>
             <p class="text-muted">Berikut adalah ringkasan aktivitas mengajar Anda.</p>
         </div>
-        <a href="tambah_jurnal.php" class="btn btn-primary shadow-sm">
+        <a href="isi_jurnal.php?open_modal=1" class="btn btn-primary shadow-sm">
             <i class="fas fa-plus fa-sm text-white-50"></i> Isi Jurnal Hari Ini
         </a>
     </div>
