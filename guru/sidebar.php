@@ -3,7 +3,20 @@
 File: guru/sidebar.php
 YouTube Style Dark Sidebar
 */
-global $current_page, $user_role;
+global $current_page, $user_role, $pdo;
+
+// Hitung permintaan pending untuk guru ini jika sudah login
+$pending_requests_guru = 0;
+if (isset($_SESSION['user_id'])) {
+    $stmt_guru_id = $pdo->prepare("SELECT id FROM tbl_guru WHERE user_id = ?");
+    $stmt_guru_id->execute([$_SESSION['user_id']]);
+    $guru_data = $stmt_guru_id->fetch();
+    if ($guru_data) {
+        $stmt_pending = $pdo->prepare("SELECT COUNT(*) FROM tbl_request_jurnal_mundur WHERE id_guru = ? AND status = 'pending'");
+        $stmt_pending->execute([$guru_data['id']]);
+        $pending_requests_guru = $stmt_pending->fetchColumn();
+    }
+}
 ?>
 
 <ul class="list-unstyled components">
@@ -18,6 +31,15 @@ global $current_page, $user_role;
         <a class="nav-link <?php echo ($current_page == 'isi_jurnal.php' || $current_page == 'riwayat_jurnal.php' || $current_page == 'edit_jurnal.php') ? 'active' : ''; ?>"
            href="<?php echo BASE_URL; ?>/guru/isi_jurnal.php" title="Jurnal">
            <i class="fas fa-edit"></i><span>Jurnal</span>
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link <?php echo ($current_page == 'riwayat_permintaan.php') ? 'active' : ''; ?>" 
+           href="<?php echo BASE_URL; ?>/guru/riwayat_permintaan.php" title="Permintaan Jurnal">
+            <i class="fas fa-envelope"></i><span>Permintaan Jurnal</span>
+            <?php if ($pending_requests_guru > 0): ?>
+            <span class="badge bg-warning text-dark ms-auto"><?= $pending_requests_guru ?></span>
+            <?php endif; ?>
         </a>
     </li>
     <li class="nav-item">

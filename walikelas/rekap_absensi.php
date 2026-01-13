@@ -168,78 +168,65 @@ if (!empty($daftar_kelas_mengajar)) {
 // --- PHP LOGIC (END) ---
 ?>
 
-<div class="container-fluid">
-    <h3>Rekap Absensi Kelas</h3>
-    <hr>
+<div class="container-fluid py-3">
+    <!-- Header dengan Judul & Tanggal -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h4 class="mb-0 fw-bold text-dark">
+            <i class="bi bi-clipboard-check me-2"></i>Rekap Absensi
+        </h4>
+        <span class="badge bg-secondary fs-6"><?php echo htmlspecialchars(date('d M Y', strtotime($tanggal_filter))); ?></span>
+    </div>
 
-    <!-- Filter Kelas dan Tanggal -->
-    <div class="card mb-4 shadow-sm">
-        <div class="card-header bg-secondary text-white">
-            <i class="bi bi-funnel"></i> Filter Data
-        </div>
-        <div class="card-body">
-            <form method="GET">
-                <div class="row g-3 align-items-end">
-                    <div class="col-md-4">
-                        <label for="id_kelas" class="form-label fw-bold">Kelas</label>
-                        <select class="form-select" id="id_kelas" name="id_kelas">
-                            <option value="all" <?php echo ($id_kelas_filter === 'all') ? 'selected' : ''; ?>>-- Semua Kelas --</option>
-                            <?php foreach ($daftar_kelas_mengajar as $kls): ?>
-                                <option value="<?php echo $kls['id']; ?>" <?php echo ($id_kelas_filter == $kls['id']) ? 'selected' : ''; ?>>
-                                    <?php echo htmlspecialchars($kls['nama_kelas']); ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
-                    </div>
-                    <div class="col-md-4">
-                        <label for="tanggal" class="form-label fw-bold">Tanggal</label>
-                        <input type="date" class="form-control" id="tanggal" name="tanggal" value="<?php echo htmlspecialchars($tanggal_filter); ?>">
-                    </div>
-                    <div class="col-md-4">
-                        <button type="submit" class="btn btn-primary w-100">
-                            <i class="bi bi-search"></i> Tampilkan
-                        </button>
-                    </div>
+    <!-- Filter Compact -->
+    <div class="bg-light rounded-3 p-3 mb-4">
+        <form method="GET">
+            <div class="row g-2 align-items-center">
+                <div class="col-md-4 col-6">
+                    <select class="form-select form-select-sm" id="id_kelas" name="id_kelas">
+                        <option value="all" <?php echo ($id_kelas_filter === 'all') ? 'selected' : ''; ?>>Semua Kelas</option>
+                        <?php foreach ($daftar_kelas_mengajar as $kls): ?>
+                            <option value="<?php echo $kls['id']; ?>" <?php echo ($id_kelas_filter == $kls['id']) ? 'selected' : ''; ?>>
+                                <?php echo htmlspecialchars($kls['nama_kelas']); ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
                 </div>
-            </form>
-        </div>
+                <div class="col-md-4 col-6">
+                    <input type="date" class="form-control form-control-sm" id="tanggal" name="tanggal" value="<?php echo htmlspecialchars($tanggal_filter); ?>">
+                </div>
+                <div class="col-md-4 col-12">
+                    <button type="submit" class="btn btn-dark btn-sm w-100">
+                        <i class="bi bi-search me-1"></i> Filter
+                    </button>
+                </div>
+            </div>
+        </form>
     </div>
     
     <?php echo $message; ?>
 
-    <!-- Total Keseluruhan -->
+    <!-- Ringkasan Kehadiran - Compact -->
     <?php if (!empty($daftar_kelas_mengajar)): ?>
-        <div class="card mb-4 border-primary">
-            <div class="card-header bg-primary text-white">
-                <h5 class="mb-0"><i class="bi bi-bar-chart"></i> Ringkasan Absensi - <?php echo htmlspecialchars(date('d F Y', strtotime($tanggal_filter))); ?></h5>
+        <div class="d-flex flex-wrap gap-2 mb-4 justify-content-center">
+            <div class="d-flex align-items-center bg-success text-white rounded-pill px-3 py-2">
+                <i class="bi bi-check-circle me-2"></i>
+                <span class="fw-bold me-1"><?php echo $totals_harian['total_harian_h'] ?? 0; ?></span>
+                <small>Hadir</small>
             </div>
-            <div class="card-body">
-                <div class="row text-center">
-                    <div class="col-md-3 col-6 mb-2">
-                        <div class="p-3 bg-success text-white rounded">
-                            <h4 class="mb-0"><?php echo $totals_harian['total_harian_h'] ?? 0; ?></h4>
-                            <small>Hadir</small>
-                        </div>
-                    </div>
-                    <div class="col-md-3 col-6 mb-2">
-                        <div class="p-3 bg-warning text-dark rounded">
-                            <h4 class="mb-0"><?php echo $totals_harian['total_harian_s'] ?? 0; ?></h4>
-                            <small>Sakit</small>
-                        </div>
-                    </div>
-                    <div class="col-md-3 col-6 mb-2">
-                        <div class="p-3 bg-info text-dark rounded">
-                            <h4 class="mb-0"><?php echo $totals_harian['total_harian_i'] ?? 0; ?></h4>
-                            <small>Izin</small>
-                        </div>
-                    </div>
-                    <div class="col-md-3 col-6 mb-2">
-                        <div class="p-3 bg-danger text-white rounded">
-                            <h4 class="mb-0"><?php echo $totals_harian['total_harian_a'] ?? 0; ?></h4>
-                            <small>Alfa</small>
-                        </div>
-                    </div>
-                </div>
+            <div class="d-flex align-items-center bg-warning text-dark rounded-pill px-3 py-2">
+                <i class="bi bi-bandaid me-2"></i>
+                <span class="fw-bold me-1"><?php echo $totals_harian['total_harian_s'] ?? 0; ?></span>
+                <small>Sakit</small>
+            </div>
+            <div class="d-flex align-items-center bg-info text-dark rounded-pill px-3 py-2">
+                <i class="bi bi-envelope me-2"></i>
+                <span class="fw-bold me-1"><?php echo $totals_harian['total_harian_i'] ?? 0; ?></span>
+                <small>Izin</small>
+            </div>
+            <div class="d-flex align-items-center bg-danger text-white rounded-pill px-3 py-2">
+                <i class="bi bi-x-circle me-2"></i>
+                <span class="fw-bold me-1"><?php echo $totals_harian['total_harian_a'] ?? 0; ?></span>
+                <small>Alfa</small>
             </div>
         </div>
     <?php endif; ?>
@@ -247,106 +234,112 @@ if (!empty($daftar_kelas_mengajar)) {
     <!-- Tampilan untuk SEMUA KELAS -->
     <?php if ($id_kelas_filter === 'all'): ?>
         <?php if (!empty($data_per_kelas)): ?>
+            <div class="row g-3">
             <?php foreach ($data_per_kelas as $kelas_data): ?>
-                <div class="card mb-4 shadow-sm">
-                    <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0"><i class="bi bi-people"></i> <?php echo htmlspecialchars($kelas_data['nama_kelas']); ?></h5>
-                        <?php if (!empty($kelas_data['jurnal'])): ?>
-                        <span class="badge bg-light text-dark">
-                            H: <?php echo $kelas_data['totals']['total_h'] ?? 0; ?> |
-                            S: <?php echo $kelas_data['totals']['total_s'] ?? 0; ?> |
-                            I: <?php echo $kelas_data['totals']['total_i'] ?? 0; ?> |
-                            A: <?php echo $kelas_data['totals']['total_a'] ?? 0; ?>
-                        </span>
-                        <?php else: ?>
-                        <span class="badge bg-warning text-dark">Belum ada jurnal</span>
-                        <?php endif; ?>
-                    </div>
-                    <div class="card-body p-0">
-                        <?php if (!empty($kelas_data['jurnal'])): ?>
-                        <div class="table-responsive">
-                            <table class="table table-bordered table-striped table-hover mb-0">
-                                <thead class="table-secondary">
-                                    <tr>
-                                        <th rowspan="2" class="text-center align-middle" style="width: 50px;">No</th>
-                                        <th rowspan="2" class="text-center align-middle" style="width: 100px;">NIS</th>
-                                        <th rowspan="2" class="text-center align-middle">Nama Siswa</th>
-                                        <?php foreach ($kelas_data['jurnal'] as $jurnal): ?>
-                                            <th class="text-center" style="width: 80px;">Jam <?php echo htmlspecialchars($jurnal['jam_ke']); ?></th>
-                                        <?php endforeach; ?>
-                                    </tr>
-                                    <tr>
-                                        <?php foreach ($kelas_data['jurnal'] as $jurnal): ?>
-                                            <th class="text-center small"><?php echo htmlspecialchars($jurnal['nama_mapel']); ?></th>
-                                        <?php endforeach; ?>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <?php if (!empty($kelas_data['siswa'])): ?>
-                                        <?php $no = 1; foreach ($kelas_data['siswa'] as $siswa): ?>
-                                            <tr>
-                                                <td class="text-center"><?php echo $no++; ?></td>
-                                                <td><?php echo htmlspecialchars($siswa['nis']); ?></td>
-                                                <td><?php echo htmlspecialchars($siswa['nama_siswa']); ?></td>
-                                                <?php foreach ($kelas_data['jurnal'] as $jurnal): ?>
-                                                    <?php 
-                                                        $status = $kelas_data['absensi'][$siswa['id']][$jurnal['id']] ?? '-';
-                                                        $badge_class = 'bg-secondary';
-                                                        if ($status == 'H') $badge_class = 'bg-success';
-                                                        elseif ($status == 'S') $badge_class = 'bg-warning text-dark';
-                                                        elseif ($status == 'I') $badge_class = 'bg-info text-dark';
-                                                        elseif ($status == 'A') $badge_class = 'bg-danger';
-                                                    ?>
-                                                    <td class="text-center">
-                                                        <span class="badge <?php echo $badge_class; ?>"><?php echo htmlspecialchars($status); ?></span>
-                                                    </td>
-                                                <?php endforeach; ?>
-                                            </tr>
-                                        <?php endforeach; ?>
-                                    <?php else: ?>
+                <div class="col-12">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-header bg-white border-bottom py-2 d-flex justify-content-between align-items-center">
+                            <h6 class="mb-0 fw-bold">
+                                <i class="bi bi-mortarboard text-primary me-2"></i><?php echo htmlspecialchars($kelas_data['nama_kelas']); ?>
+                            </h6>
+                            <?php if (!empty($kelas_data['jurnal'])): ?>
+                            <div class="d-flex gap-1">
+                                <span class="badge bg-success"><?php echo $kelas_data['totals']['total_h'] ?? 0; ?> H</span>
+                                <span class="badge bg-warning text-dark"><?php echo $kelas_data['totals']['total_s'] ?? 0; ?> S</span>
+                                <span class="badge bg-info text-dark"><?php echo $kelas_data['totals']['total_i'] ?? 0; ?> I</span>
+                                <span class="badge bg-danger"><?php echo $kelas_data['totals']['total_a'] ?? 0; ?> A</span>
+                            </div>
+                            <?php else: ?>
+                            <span class="badge bg-secondary">Belum ada jurnal</span>
+                            <?php endif; ?>
+                        </div>
+                        <div class="card-body p-0">
+                            <?php if (!empty($kelas_data['jurnal'])): ?>
+                            <div class="table-responsive">
+                                <table class="table table-sm table-hover mb-0 align-middle">
+                                    <thead class="table-light">
                                         <tr>
-                                            <td colspan="<?php echo 3 + count($kelas_data['jurnal']); ?>" class="text-center text-muted py-3">Tidak ada data siswa di kelas ini</td>
+                                            <th class="text-center" style="width: 40px;">#</th>
+                                            <th>Nama Siswa</th>
+                                            <?php foreach ($kelas_data['jurnal'] as $jurnal): ?>
+                                                <th class="text-center" style="width: 70px;">
+                                                    <small class="d-block text-muted">Jam <?php echo htmlspecialchars($jurnal['jam_ke']); ?></small>
+                                                </th>
+                                            <?php endforeach; ?>
                                         </tr>
-                                    <?php endif; ?>
-                                </tbody>
-                            </table>
+                                    </thead>
+                                    <tbody>
+                                        <?php if (!empty($kelas_data['siswa'])): ?>
+                                            <?php $no = 1; foreach ($kelas_data['siswa'] as $siswa): ?>
+                                                <tr>
+                                                    <td class="text-center text-muted small"><?php echo $no++; ?></td>
+                                                    <td class="fw-medium"><?php echo htmlspecialchars($siswa['nama_siswa']); ?></td>
+                                                    <?php foreach ($kelas_data['jurnal'] as $jurnal): ?>
+                                                        <?php 
+                                                            $status = $kelas_data['absensi'][$siswa['id']][$jurnal['id']] ?? '-';
+                                                            $badge_class = 'bg-secondary';
+                                                            if ($status == 'H') $badge_class = 'bg-success';
+                                                            elseif ($status == 'S') $badge_class = 'bg-warning text-dark';
+                                                            elseif ($status == 'I') $badge_class = 'bg-info text-dark';
+                                                            elseif ($status == 'A') $badge_class = 'bg-danger';
+                                                        ?>
+                                                        <td class="text-center">
+                                                            <span class="badge <?php echo $badge_class; ?>"><?php echo $status; ?></span>
+                                                        </td>
+                                                    <?php endforeach; ?>
+                                                </tr>
+                                            <?php endforeach; ?>
+                                        <?php else: ?>
+                                            <tr>
+                                                <td colspan="<?php echo 2 + count($kelas_data['jurnal']); ?>" class="text-center text-muted py-3">
+                                                    <small>Tidak ada siswa</small>
+                                                </td>
+                                            </tr>
+                                        <?php endif; ?>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <?php else: ?>
+                            <div class="p-3 text-center text-muted">
+                                <small><i class="bi bi-journal-x me-1"></i>Belum ada jurnal hari ini</small>
+                            </div>
+                            <?php endif; ?>
                         </div>
-                        <?php else: ?>
-                        <div class="p-3 text-center text-muted">
-                            <i class="bi bi-journal-x fs-1"></i>
-                            <p class="mb-0 mt-2">Belum ada jurnal pada tanggal ini</p>
-                        </div>
-                        <?php endif; ?>
                     </div>
                 </div>
             <?php endforeach; ?>
+            </div>
         <?php else: ?>
-            <div class="alert alert-warning">
-                <i class="bi bi-exclamation-triangle"></i> Tidak ada kelas yang Anda ajar.
+            <div class="alert alert-light border text-center">
+                <i class="bi bi-info-circle me-1"></i> Tidak ada kelas yang Anda ajar.
             </div>
         <?php endif; ?>
         
     <!-- Tampilan untuk KELAS TERTENTU -->
     <?php elseif ($id_kelas_target && !empty($daftar_jurnal_hari_ini)): ?>
-        <div class="card shadow-sm">
-            <div class="card-header bg-dark text-white">
-                <h5 class="mb-0"><i class="bi bi-people"></i> Detail Absensi - <?php echo htmlspecialchars($nama_kelas_target); ?></h5>
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white border-bottom py-2 d-flex justify-content-between align-items-center">
+                <h6 class="mb-0 fw-bold">
+                    <i class="bi bi-mortarboard text-primary me-2"></i><?php echo htmlspecialchars($nama_kelas_target); ?>
+                </h6>
+                <div class="d-flex gap-1">
+                    <span class="badge bg-success"><?php echo $totals_harian['total_harian_h'] ?? 0; ?> H</span>
+                    <span class="badge bg-warning text-dark"><?php echo $totals_harian['total_harian_s'] ?? 0; ?> S</span>
+                    <span class="badge bg-info text-dark"><?php echo $totals_harian['total_harian_i'] ?? 0; ?> I</span>
+                    <span class="badge bg-danger"><?php echo $totals_harian['total_harian_a'] ?? 0; ?> A</span>
+                </div>
             </div>
             <div class="card-body p-0">
                 <div class="table-responsive">
-                    <table class="table table-bordered table-striped table-hover mb-0">
-                        <thead class="table-secondary">
+                    <table class="table table-sm table-hover mb-0 align-middle">
+                        <thead class="table-light">
                             <tr>
-                                <th rowspan="2" class="text-center align-middle" style="width: 50px;">No</th>
-                                <th rowspan="2" class="text-center align-middle" style="width: 100px;">NIS</th>
-                                <th rowspan="2" class="text-center align-middle">Nama Siswa</th>
+                                <th class="text-center" style="width: 40px;">#</th>
+                                <th>Nama Siswa</th>
                                 <?php foreach ($daftar_jurnal_hari_ini as $jurnal): ?>
-                                    <th class="text-center" style="width: 80px;">Jam <?php echo htmlspecialchars($jurnal['jam_ke']); ?></th>
-                                <?php endforeach; ?>
-                            </tr>
-                            <tr>
-                                <?php foreach ($daftar_jurnal_hari_ini as $jurnal): ?>
-                                    <th class="text-center small"><?php echo htmlspecialchars($jurnal['nama_mapel']); ?></th>
+                                    <th class="text-center" style="width: 70px;">
+                                        <small class="d-block text-muted">Jam <?php echo htmlspecialchars($jurnal['jam_ke']); ?></small>
+                                    </th>
                                 <?php endforeach; ?>
                             </tr>
                         </thead>
@@ -354,9 +347,8 @@ if (!empty($daftar_kelas_mengajar)) {
                             <?php if (!empty($daftar_siswa)): ?>
                                 <?php $no = 1; foreach ($daftar_siswa as $siswa): ?>
                                     <tr>
-                                        <td class="text-center"><?php echo $no++; ?></td>
-                                        <td><?php echo htmlspecialchars($siswa['nis']); ?></td>
-                                        <td><?php echo htmlspecialchars($siswa['nama_siswa']); ?></td>
+                                        <td class="text-center text-muted small"><?php echo $no++; ?></td>
+                                        <td class="fw-medium"><?php echo htmlspecialchars($siswa['nama_siswa']); ?></td>
                                         <?php foreach ($daftar_jurnal_hari_ini as $jurnal): ?>
                                             <?php 
                                                 $status = $data_absensi[$siswa['id']][$jurnal['id']] ?? '-';
@@ -367,14 +359,16 @@ if (!empty($daftar_kelas_mengajar)) {
                                                 elseif ($status == 'A') $badge_class = 'bg-danger';
                                             ?>
                                             <td class="text-center">
-                                                <span class="badge <?php echo $badge_class; ?>"><?php echo htmlspecialchars($status); ?></span>
+                                                <span class="badge <?php echo $badge_class; ?>"><?php echo $status; ?></span>
                                             </td>
                                         <?php endforeach; ?>
                                     </tr>
                                 <?php endforeach; ?>
                             <?php else: ?>
                                 <tr>
-                                    <td colspan="<?php echo 3 + count($daftar_jurnal_hari_ini); ?>" class="text-center">Tidak ada data siswa di kelas ini.</td>
+                                    <td colspan="<?php echo 2 + count($daftar_jurnal_hari_ini); ?>" class="text-center text-muted py-3">
+                                        <small>Tidak ada siswa di kelas ini</small>
+                                    </td>
                                 </tr>
                             <?php endif; ?>
                         </tbody>
@@ -383,10 +377,23 @@ if (!empty($daftar_kelas_mengajar)) {
             </div>
         </div>
     <?php elseif ($id_kelas_target && empty($daftar_jurnal_hari_ini)): ?>
-        <div class="alert alert-info">
-            <i class="bi bi-info-circle"></i> Tidak ada jurnal yang tercatat pada tanggal <strong><?php echo htmlspecialchars(date('d F Y', strtotime($tanggal_filter))); ?></strong> untuk kelas <strong><?php echo htmlspecialchars($nama_kelas_target); ?></strong>.
+        <div class="alert alert-light border text-center">
+            <i class="bi bi-journal-x me-2"></i>Tidak ada jurnal pada <strong><?php echo htmlspecialchars(date('d M Y', strtotime($tanggal_filter))); ?></strong> untuk kelas <strong><?php echo htmlspecialchars($nama_kelas_target); ?></strong>
         </div>
     <?php endif; ?>
+
+    <!-- Legend -->
+    <div class="mt-4 text-center">
+        <small class="text-muted">
+            <i class="bi bi-check-lg text-success me-1"></i>Hadir
+            <span class="mx-2">|</span>
+            <i class="bi bi-bandaid text-warning me-1"></i>Sakit
+            <span class="mx-2">|</span>
+            <i class="bi bi-envelope text-info me-1"></i>Izin
+            <span class="mx-2">|</span>
+            <i class="bi bi-x-lg text-danger me-1"></i>Alfa
+        </small>
+    </div>
 </div>
 <?php
 // 6. Panggil footer

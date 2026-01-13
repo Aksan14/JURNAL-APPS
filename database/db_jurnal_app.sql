@@ -1,8 +1,8 @@
 -- =====================================================
 -- DATABASE: jurnal_app
 -- Script Database Lengkap - Aplikasi Jurnal Guru
--- Versi: 2.0 (dengan Jadwal Hari & Jam)
--- Tanggal: 2026-01-12
+-- Versi: 3.0 (Optimized - Unused Fields Removed)
+-- Tanggal: 2026-01-14
 -- =====================================================
 
 -- Buat database
@@ -12,7 +12,7 @@ USE jurnal_app;
 -- =====================================================
 -- DROP TABLES (urutan terbalik karena foreign key)
 -- =====================================================
-DROP TABLE IF EXISTS tbl_log_aktivitas;
+DROP TABLE IF EXISTS tbl_request_jurnal_mundur;
 DROP TABLE IF EXISTS tbl_presensi_siswa;
 DROP TABLE IF EXISTS tbl_jurnal;
 DROP TABLE IF EXISTS tbl_mengajar;
@@ -20,41 +20,35 @@ DROP TABLE IF EXISTS tbl_siswa;
 DROP TABLE IF EXISTS tbl_kelas;
 DROP TABLE IF EXISTS tbl_guru;
 DROP TABLE IF EXISTS tbl_mapel;
-DROP TABLE IF EXISTS tbl_pengaturan;
 DROP TABLE IF EXISTS tbl_users;
 
 -- =====================================================
 -- TABEL 1: tbl_users (Akun Login)
+-- Removed: foto_profil, last_login, is_active, created_at, updated_at
 -- =====================================================
 CREATE TABLE tbl_users (
     id INT AUTO_INCREMENT PRIMARY KEY,
     username VARCHAR(50) NOT NULL UNIQUE,
     password_hash VARCHAR(255) NOT NULL,
     role ENUM('admin', 'guru', 'walikelas', 'siswa') NOT NULL DEFAULT 'guru',
-    foto_profil VARCHAR(255) DEFAULT NULL,
-    last_login DATETIME DEFAULT NULL,
-    is_active TINYINT(1) DEFAULT 1,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_username (username),
     INDEX idx_role (role)
 ) ENGINE=InnoDB;
 
 -- =====================================================
 -- TABEL 2: tbl_mapel (Mata Pelajaran)
+-- Removed: kode_mapel, kelompok_mapel, created_at, updated_at
 -- =====================================================
 CREATE TABLE tbl_mapel (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    kode_mapel VARCHAR(20) DEFAULT NULL,
     nama_mapel VARCHAR(100) NOT NULL,
-    kelompok_mapel ENUM('A', 'B', 'C') DEFAULT NULL COMMENT 'A=Wajib, B=Peminatan, C=Lintas Minat',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_nama_mapel (nama_mapel)
 ) ENGINE=InnoDB;
 
 -- =====================================================
 -- TABEL 3: tbl_guru (Data Guru)
+-- Removed: jenis_kelamin, tempat_lahir, tanggal_lahir, alamat, 
+--          no_hp, jabatan, status_kepegawaian, created_at, updated_at
 -- =====================================================
 CREATE TABLE tbl_guru (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -62,16 +56,7 @@ CREATE TABLE tbl_guru (
     nip VARCHAR(30) DEFAULT NULL,
     nama_guru VARCHAR(100) NOT NULL,
     foto VARCHAR(255) DEFAULT NULL,
-    jenis_kelamin ENUM('L', 'P') DEFAULT NULL,
-    tempat_lahir VARCHAR(50) DEFAULT NULL,
-    tanggal_lahir DATE DEFAULT NULL,
-    alamat TEXT DEFAULT NULL,
-    no_hp VARCHAR(20) DEFAULT NULL,
     email VARCHAR(100) DEFAULT NULL,
-    jabatan VARCHAR(50) DEFAULT NULL,
-    status_kepegawaian ENUM('PNS', 'PPPK', 'GTT', 'Honorer') DEFAULT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES tbl_users(id) ON DELETE SET NULL,
     INDEX idx_nip (nip),
     INDEX idx_nama_guru (nama_guru)
@@ -79,39 +64,28 @@ CREATE TABLE tbl_guru (
 
 -- =====================================================
 -- TABEL 4: tbl_kelas (Data Kelas)
+-- Removed: tingkat, jurusan, tahun_ajaran, created_at, updated_at
 -- =====================================================
 CREATE TABLE tbl_kelas (
     id INT AUTO_INCREMENT PRIMARY KEY,
     nama_kelas VARCHAR(20) NOT NULL UNIQUE,
-    tingkat ENUM('X', 'XI', 'XII') DEFAULT NULL,
-    jurusan VARCHAR(50) DEFAULT NULL,
     id_wali_kelas INT DEFAULT NULL,
-    tahun_ajaran VARCHAR(10) DEFAULT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (id_wali_kelas) REFERENCES tbl_guru(id) ON DELETE SET NULL,
     INDEX idx_nama_kelas (nama_kelas)
 ) ENGINE=InnoDB;
 
 -- =====================================================
 -- TABEL 5: tbl_siswa (Data Siswa)
+-- Removed: nisn, jenis_kelamin, tempat_lahir, tanggal_lahir, 
+--          alamat, no_hp, nama_orangtua, no_hp_orangtua, created_at, updated_at
 -- =====================================================
 CREATE TABLE tbl_siswa (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT DEFAULT NULL,
     id_kelas INT NOT NULL,
     nis VARCHAR(20) NOT NULL UNIQUE,
-    nisn VARCHAR(20) DEFAULT NULL,
     nama_siswa VARCHAR(100) NOT NULL,
-    jenis_kelamin ENUM('L', 'P') DEFAULT NULL,
-    tempat_lahir VARCHAR(50) DEFAULT NULL,
-    tanggal_lahir DATE DEFAULT NULL,
-    alamat TEXT DEFAULT NULL,
-    no_hp VARCHAR(20) DEFAULT NULL,
-    nama_orangtua VARCHAR(100) DEFAULT NULL,
-    no_hp_orangtua VARCHAR(20) DEFAULT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    foto VARCHAR(255) DEFAULT NULL,
     FOREIGN KEY (user_id) REFERENCES tbl_users(id) ON DELETE SET NULL,
     FOREIGN KEY (id_kelas) REFERENCES tbl_kelas(id) ON DELETE CASCADE,
     INDEX idx_nis (nis),
@@ -121,7 +95,7 @@ CREATE TABLE tbl_siswa (
 
 -- =====================================================
 -- TABEL 6: tbl_mengajar (Jadwal Mengajar)
--- PENTING: Kolom 'hari' dan 'jam_ke' untuk tracking
+-- Removed: tahun_ajaran, semester, created_at, updated_at
 -- =====================================================
 CREATE TABLE tbl_mengajar (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -131,10 +105,6 @@ CREATE TABLE tbl_mengajar (
     hari ENUM('Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu') NOT NULL COMMENT 'Hari jadwal',
     jam_ke VARCHAR(10) NOT NULL COMMENT 'Format: 1-2, 3-4, 5',
     jumlah_jam_mingguan INT DEFAULT 0,
-    tahun_ajaran VARCHAR(10) DEFAULT NULL,
-    semester ENUM('Ganjil', 'Genap') DEFAULT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (id_guru) REFERENCES tbl_guru(id) ON DELETE CASCADE,
     FOREIGN KEY (id_mapel) REFERENCES tbl_mapel(id) ON DELETE CASCADE,
     FOREIGN KEY (id_kelas) REFERENCES tbl_kelas(id) ON DELETE CASCADE,
@@ -148,6 +118,8 @@ CREATE TABLE tbl_mengajar (
 
 -- =====================================================
 -- TABEL 7: tbl_jurnal (Jurnal Pembelajaran)
+-- Removed: kegiatan_pembelajaran, metode_pembelajaran, 
+--          media_pembelajaran, hambatan
 -- =====================================================
 CREATE TABLE tbl_jurnal (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -155,11 +127,7 @@ CREATE TABLE tbl_jurnal (
     tanggal DATE NOT NULL,
     jam_ke VARCHAR(10) NOT NULL,
     topik_materi TEXT NOT NULL,
-    kegiatan_pembelajaran TEXT DEFAULT NULL,
     catatan_guru TEXT DEFAULT NULL,
-    metode_pembelajaran VARCHAR(100) DEFAULT NULL,
-    media_pembelajaran VARCHAR(255) DEFAULT NULL,
-    hambatan TEXT DEFAULT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (id_mengajar) REFERENCES tbl_mengajar(id) ON DELETE CASCADE,
@@ -170,14 +138,13 @@ CREATE TABLE tbl_jurnal (
 
 -- =====================================================
 -- TABEL 8: tbl_presensi_siswa (Absensi Siswa)
+-- Removed: keterangan, created_at
 -- =====================================================
 CREATE TABLE tbl_presensi_siswa (
     id INT AUTO_INCREMENT PRIMARY KEY,
     id_jurnal INT NOT NULL,
     id_siswa INT NOT NULL,
     status_kehadiran ENUM('H', 'S', 'I', 'A') NOT NULL DEFAULT 'H' COMMENT 'H=Hadir, S=Sakit, I=Izin, A=Alpa',
-    keterangan VARCHAR(255) DEFAULT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (id_jurnal) REFERENCES tbl_jurnal(id) ON DELETE CASCADE,
     FOREIGN KEY (id_siswa) REFERENCES tbl_siswa(id) ON DELETE CASCADE,
     UNIQUE KEY uk_presensi (id_jurnal, id_siswa),
@@ -187,30 +154,26 @@ CREATE TABLE tbl_presensi_siswa (
 ) ENGINE=InnoDB;
 
 -- =====================================================
--- TABEL 9: tbl_pengaturan (Setting Aplikasi)
+-- TABEL 9: tbl_request_jurnal_mundur (Permintaan Jurnal Mundur)
 -- =====================================================
-CREATE TABLE tbl_pengaturan (
+CREATE TABLE tbl_request_jurnal_mundur (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    nama_setting VARCHAR(100) NOT NULL UNIQUE,
-    nilai_setting TEXT DEFAULT NULL,
-    deskripsi VARCHAR(255) DEFAULT NULL,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-) ENGINE=InnoDB;
-
--- =====================================================
--- TABEL 10: tbl_log_aktivitas (Log Audit)
--- =====================================================
-CREATE TABLE tbl_log_aktivitas (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id INT DEFAULT NULL,
-    aktivitas VARCHAR(255) NOT NULL,
-    detail TEXT DEFAULT NULL,
-    ip_address VARCHAR(45) DEFAULT NULL,
-    user_agent VARCHAR(255) DEFAULT NULL,
+    id_guru INT NOT NULL,
+    id_mengajar INT NOT NULL,
+    tanggal_jurnal DATE NOT NULL,
+    alasan TEXT NOT NULL,
+    status ENUM('pending', 'approved', 'rejected') DEFAULT 'pending',
+    catatan_admin TEXT DEFAULT NULL,
+    notified_guru TINYINT(1) DEFAULT 0 COMMENT '0=belum dilihat guru, 1=sudah dilihat',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES tbl_users(id) ON DELETE SET NULL,
-    INDEX idx_user (user_id),
-    INDEX idx_created (created_at)
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (id_guru) REFERENCES tbl_guru(id) ON DELETE CASCADE,
+    FOREIGN KEY (id_mengajar) REFERENCES tbl_mengajar(id) ON DELETE CASCADE,
+    UNIQUE KEY uk_request (id_guru, id_mengajar, tanggal_jurnal, status),
+    INDEX idx_guru (id_guru),
+    INDEX idx_mengajar (id_mengajar),
+    INDEX idx_status (status),
+    INDEX idx_tanggal (tanggal_jurnal)
 ) ENGINE=InnoDB;
 
 -- =====================================================
@@ -220,39 +183,6 @@ CREATE TABLE tbl_log_aktivitas (
 -- Admin default (password: password)
 INSERT INTO tbl_users (username, password_hash, role) VALUES 
 ('admin', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'admin');
-
--- Pengaturan default
-INSERT INTO tbl_pengaturan (nama_setting, nilai_setting, deskripsi) VALUES 
-('nama_sekolah', 'SMA Negeri 1 Contoh', 'Nama Sekolah'),
-('alamat_sekolah', 'Jl. Pendidikan No. 1', 'Alamat Sekolah'),
-('tahun_ajaran_aktif', '2025/2026', 'Tahun Ajaran Aktif'),
-('semester_aktif', 'Genap', 'Semester Aktif'),
-('max_jam_per_hari', '10', 'Maksimal jam pelajaran per hari per kelas');
-
--- Mata pelajaran contoh
-INSERT INTO tbl_mapel (kode_mapel, nama_mapel, kelompok_mapel) VALUES 
-('MAT', 'Matematika', 'A'),
-('BIN', 'Bahasa Indonesia', 'A'),
-('BIG', 'Bahasa Inggris', 'A'),
-('FIS', 'Fisika', 'B'),
-('KIM', 'Kimia', 'B'),
-('BIO', 'Biologi', 'B'),
-('SEJ', 'Sejarah', 'A'),
-('PKN', 'Pendidikan Kewarganegaraan', 'A'),
-('PAI', 'Pendidikan Agama Islam', 'A'),
-('PJK', 'Pendidikan Jasmani', 'A');
-
--- Kelas contoh
-INSERT INTO tbl_kelas (nama_kelas, tingkat, jurusan, tahun_ajaran) VALUES 
-('X IPA 1', 'X', 'IPA', '2025/2026'),
-('X IPA 2', 'X', 'IPA', '2025/2026'),
-('X IPS 1', 'X', 'IPS', '2025/2026'),
-('XI IPA 1', 'XI', 'IPA', '2025/2026'),
-('XI IPA 2', 'XI', 'IPA', '2025/2026'),
-('XI IPS 1', 'XI', 'IPS', '2025/2026'),
-('XII IPA 1', 'XII', 'IPA', '2025/2026'),
-('XII IPA 2', 'XII', 'IPA', '2025/2026'),
-('XII IPS 1', 'XII', 'IPS', '2025/2026');
 
 -- =====================================================
 -- VIEW: Jadwal belum diisi jurnal hari ini
@@ -287,9 +217,7 @@ AND m.id NOT IN (
     SELECT id_mengajar FROM tbl_jurnal WHERE tanggal = CURDATE()
 );
 
--- =====================================================
--- VIEW: Rekap jurnal guru per bulan
--- =====================================================
+
 CREATE OR REPLACE VIEW v_rekap_jurnal_guru AS
 SELECT 
     g.id as id_guru,

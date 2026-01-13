@@ -67,6 +67,10 @@ global $current_page;
     ");
     $stmt_notif->execute([$nama_hari_ini]);
     $jumlah_belum_isi = $stmt_notif->fetchColumn();
+    
+    // Hitung permintaan jurnal mundur pending
+    $stmt_request_pending = $pdo->query("SELECT COUNT(*) FROM tbl_request_jurnal_mundur WHERE status = 'pending'");
+    $jumlah_request_pending = $stmt_request_pending->fetchColumn();
     ?>
     <li class="nav-item">
         <a class="nav-link <?php echo ($current_page == 'notifikasi_jurnal.php') ? 'active' : ''; ?>"
@@ -74,6 +78,15 @@ global $current_page;
             <i class="fas fa-bell"></i><span>Notifikasi</span>
             <?php if ($jumlah_belum_isi > 0): ?>
                 <span class="badge bg-danger"><?php echo $jumlah_belum_isi; ?></span>
+            <?php endif; ?>
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link <?php echo ($current_page == 'request_jurnal_mundur.php') ? 'active' : ''; ?>"
+           href="<?php echo BASE_URL; ?>/admin/request_jurnal_mundur.php" title="Permintaan Jurnal">
+            <i class="fas fa-envelope-open-text"></i><span>Permintaan Jurnal</span>
+            <?php if ($jumlah_request_pending > 0): ?>
+                <span class="badge bg-warning text-dark"><?php echo $jumlah_request_pending; ?></span>
             <?php endif; ?>
         </a>
     </li>

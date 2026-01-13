@@ -15,6 +15,10 @@ $charset = 'utf8mb4';
 
 define('BASE_URL', 'http://localhost/jurnal_app');
 
+// Batas maksimal mundur tanggal untuk pengisian jurnal (dalam hari)
+// Guru hanya bisa mengisi jurnal maksimal X hari ke belakang dari hari ini
+define('MAX_HARI_MUNDUR_JURNAL', 7);
+
 $dsn = "mysql:host=$host;dbname=$db;charset=$charset";
 $options = [
     PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,

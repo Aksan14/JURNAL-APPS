@@ -56,6 +56,33 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['simpan_jurnal'])) {
         'Kamis' => 4, 'Jumat' => 5, 'Sabtu' => 6
     ];
 
+    // Validasi: Cek apakah tanggal tidak melebihi batas mundur
+    $tanggal_input = new DateTime($tanggal);
+    $tanggal_hari_ini = new DateTime(date('Y-m-d'));
+    $selisih_hari = $tanggal_hari_ini->diff($tanggal_input)->days;
+    $is_past = $tanggal_input < $tanggal_hari_ini;
+    
+    // Cek apakah ada izin approved untuk tanggal ini
+    $has_approval = false;
+    if ($is_past && $selisih_hari > MAX_HARI_MUNDUR_JURNAL) {
+        $stmt_approval = $pdo->prepare("
+            SELECT id FROM tbl_request_jurnal_mundur 
+            WHERE id_guru = ? AND id_mengajar = ? AND tanggal_jurnal = ? AND status = 'approved'
+        ");
+        $stmt_approval->execute([$id_guru_login, $id_mengajar, $tanggal]);
+        $has_approval = $stmt_approval->fetch() ? true : false;
+    }
+    
+    if ($is_past && $selisih_hari > MAX_HARI_MUNDUR_JURNAL && !$has_approval) {
+        $batas_tanggal = date('d/m/Y', strtotime('-' . MAX_HARI_MUNDUR_JURNAL . ' days'));
+        $message = "<div class='alert alert-danger alert-dismissible fade show'>
+            <strong>Gagal!</strong> Anda tidak dapat mengisi jurnal untuk tanggal <strong>" . date('d/m/Y', strtotime($tanggal)) . "</strong>.
+            <br>Batas maksimal mundur adalah <strong>" . MAX_HARI_MUNDUR_JURNAL . " hari</strong> dari hari ini (minimal tanggal <strong>{$batas_tanggal}</strong>).
+            <br><small class='text-muted'>Silakan ajukan permintaan izin ke admin melalui menu 'Minta Izin Tanggal Lain' di form jurnal.</small>
+            <button type='button' class='btn-close' data-bs-dismiss='alert'></button>
+        </div>";
+    } else {
+
     try {
         // Ambil hari jadwal dari tbl_mengajar
         $stmt_hari = $pdo->prepare("SELECT hari FROM tbl_mengajar WHERE id = ?");
@@ -139,6 +166,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['simpan_jurnal'])) {
         if ($pdo->inTransaction()) $pdo->rollBack();
         $message = "<div class='alert alert-danger'>Gagal menyimpan: " . $e->getMessage() . "</div>";
     }
+    } // End validasi batas mundur tanggal
 }
 
 // Ambil data Kelas & Mapel yang diajar (termasuk hari jadwal)
@@ -167,6 +195,74 @@ $stmt_sudah_isi = $pdo->prepare("
 ");
 $stmt_sudah_isi->execute([$id_guru_login]);
 $sudah_isi_hari_ini = $stmt_sudah_isi->fetchAll(PDO::FETCH_COLUMN);
+
+// Ambil tanggal yang sudah di-approve untuk guru ini
+$stmt_approved_dates = $pdo->prepare("
+    SELECT r.id_mengajar, r.tanggal_jurnal 
+    FROM tbl_request_jurnal_mundur r
+    WHERE r.id_guru = ? AND r.status = 'approved'
+    AND r.tanggal_jurnal NOT IN (
+        SELECT tanggal FROM tbl_jurnal WHERE id_mengajar = r.id_mengajar
+    )
+");
+$stmt_approved_dates->execute([$id_guru_login]);
+$approved_dates = $stmt_approved_dates->fetchAll();
+
+// Format approved dates untuk JavaScript
+$approved_dates_map = [];
+foreach ($approved_dates as $ad) {
+    $approved_dates_map[$ad['id_mengajar']][] = $ad['tanggal_jurnal'];
+}
+
+// Generate tanggal mundur untuk setiap hari jadwal (untuk modal request)
+// Tanggal dimulai dari 8 hari lalu sampai 90 hari lalu
+$tanggal_mundur_per_hari = [];
+$hari_map = ['Minggu' => 0, 'Senin' => 1, 'Selasa' => 2, 'Rabu' => 3, 'Kamis' => 4, 'Jumat' => 5, 'Sabtu' => 6];
+$nama_hari_indo = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+$nama_bulan_indo = ['', 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+
+foreach ($hari_map as $nama_hari => $index_hari) {
+    $tanggal_mundur_per_hari[$nama_hari] = [];
+    
+    // Mulai dari 8 hari lalu
+    $start = new DateTime();
+    $start->modify('-' . (MAX_HARI_MUNDUR_JURNAL + 1) . ' days');
+    
+    // Sampai 90 hari lalu
+    $end = new DateTime();
+    $end->modify('-90 days');
+    
+    $current = clone $start;
+    $count = 0;
+    
+    while ($current >= $end && $count < 12) {
+        if ((int)$current->format('w') === $index_hari) {
+            $tanggal_mundur_per_hari[$nama_hari][] = [
+                'value' => $current->format('Y-m-d'),
+                'label' => $nama_hari_indo[(int)$current->format('w')] . ', ' . 
+                          (int)$current->format('d') . ' ' . 
+                          $nama_bulan_indo[(int)$current->format('n')] . ' ' . 
+                          $current->format('Y')
+            ];
+            $count++;
+        }
+        $current->modify('-1 day');
+    }
+}
+
+// Cek apakah ada permintaan yang baru di-approve atau di-reject (belum dilihat)
+$stmt_notif_request = $pdo->prepare("
+    SELECT r.*, k.nama_kelas, mp.nama_mapel 
+    FROM tbl_request_jurnal_mundur r
+    JOIN tbl_mengajar m ON r.id_mengajar = m.id
+    JOIN tbl_kelas k ON m.id_kelas = k.id
+    JOIN tbl_mapel mp ON m.id_mapel = mp.id
+    WHERE r.id_guru = ? AND r.status IN ('approved', 'rejected') 
+    AND (r.notified_guru IS NULL OR r.notified_guru = 0)
+    ORDER BY r.updated_at DESC
+");
+$stmt_notif_request->execute([$id_guru_login]);
+$notif_requests = $stmt_notif_request->fetchAll();
 
 // Ambil riwayat jurnal
 $stmt_riwayat = $pdo->prepare("
@@ -222,6 +318,12 @@ require_once '../includes/header.php';
     }
     
     .modal-xl-custom { max-width: 900px; }
+    
+    /* Fix modal scroll */
+    #modalIsiJurnal .modal-content {
+        display: flex;
+        flex-direction: column;
+    }
 </style>
 
 <div class="container-fluid">
@@ -239,6 +341,34 @@ require_once '../includes/header.php';
         if ($_GET['status'] == 'updated') echo "<div class='alert alert-success alert-dismissible fade show'>Jurnal berhasil diperbarui. <button type='button' class='btn-close' data-bs-dismiss='alert'></button></div>";
         if ($_GET['status'] == 'success') echo "<div class='alert alert-success alert-dismissible fade show'>Jurnal dan absensi berhasil disimpan! <button type='button' class='btn-close' data-bs-dismiss='alert'></button></div>";
     }
+    
+    // Tampilkan notifikasi permintaan yang sudah diproses
+    if (count($notif_requests) > 0): ?>
+        <?php foreach ($notif_requests as $notif): ?>
+            <?php if ($notif['status'] == 'approved'): ?>
+                <div class="alert alert-success alert-dismissible fade show" data-notif-id="<?= $notif['id'] ?>">
+                    <strong><i class="fas fa-check-circle"></i> Permintaan Disetujui!</strong><br>
+                    Permintaan Anda untuk mengisi jurnal tanggal <strong><?= date('d/m/Y', strtotime($notif['tanggal_jurnal'])) ?></strong> 
+                    (<?= htmlspecialchars($notif['nama_kelas']) ?> - <?= htmlspecialchars($notif['nama_mapel']) ?>) telah <span class="text-success fw-bold">DISETUJUI</span> oleh admin.
+                    <?php if (!empty($notif['catatan_admin'])): ?>
+                        <br><small class="text-muted"><i class="fas fa-comment"></i> Catatan admin: <?= htmlspecialchars($notif['catatan_admin']) ?></small>
+                    <?php endif; ?>
+                    <br><small>Silakan pilih tanggal tersebut di dropdown "Tanggal Disetujui Admin" saat mengisi jurnal.</small>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" onclick="markNotifRead(<?= $notif['id'] ?>)"></button>
+                </div>
+            <?php else: ?>
+                <div class="alert alert-danger alert-dismissible fade show" data-notif-id="<?= $notif['id'] ?>">
+                    <strong><i class="fas fa-times-circle"></i> Permintaan Ditolak</strong><br>
+                    Permintaan Anda untuk mengisi jurnal tanggal <strong><?= date('d/m/Y', strtotime($notif['tanggal_jurnal'])) ?></strong> 
+                    (<?= htmlspecialchars($notif['nama_kelas']) ?> - <?= htmlspecialchars($notif['nama_mapel']) ?>) telah <span class="text-danger fw-bold">DITOLAK</span> oleh admin.
+                    <?php if (!empty($notif['catatan_admin'])): ?>
+                        <br><small><i class="fas fa-comment"></i> Alasan: <?= htmlspecialchars($notif['catatan_admin']) ?></small>
+                    <?php endif; ?>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" onclick="markNotifRead(<?= $notif['id'] ?>)"></button>
+                </div>
+            <?php endif; ?>
+        <?php endforeach; ?>
+    <?php endif;
     ?>
 
     <!-- Riwayat Jurnal -->
@@ -300,16 +430,16 @@ require_once '../includes/header.php';
 
 <!-- Modal Isi Jurnal -->
 <div class="modal fade" id="modalIsiJurnal" tabindex="-1" aria-labelledby="modalIsiJurnalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-xl-custom modal-dialog-scrollable">
-        <div class="modal-content">
-            <div class="modal-header bg-primary text-white">
+    <div class="modal-dialog modal-xl-custom">
+        <div class="modal-content" style="max-height: 90vh;">
+            <div class="modal-header bg-primary text-white" style="flex-shrink: 0;">
                 <h5 class="modal-title" id="modalIsiJurnalLabel">
                     <i class="fas fa-edit me-2"></i>Formulir Jurnal Pembelajaran
                 </h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form action="isi_jurnal.php" method="POST" id="formIsiJurnal">
-                <div class="modal-body">
+            <form action="isi_jurnal.php" method="POST" id="formIsiJurnal" style="display: flex; flex-direction: column; overflow: hidden; flex: 1;">
+                <div class="modal-body" style="overflow-y: auto; flex: 1;">
                     <div class="row">
                         <div class="col-lg-6">
                             <div class="mb-3">
@@ -357,8 +487,13 @@ require_once '../includes/header.php';
                             <div class="row">
                                 <div class="col-sm-6 mb-3">
                                     <label for="tanggal" class="form-label fw-bold">Tanggal</label>
-                                    <input type="date" class="form-control" id="tanggal" name="tanggal" value="<?= date('Y-m-d') ?>" required>
-                                    <small id="tanggal-warning" class="text-danger" style="display: none;">
+                                    <select class="form-select" id="tanggal" name="tanggal" required disabled>
+                                        <option value="">-- Pilih Kelas & Mapel dulu --</option>
+                                    </select>
+                                    <small id="tanggal-info" class="text-muted">
+                                        <i class="fas fa-info-circle"></i> Pilih kelas & mapel untuk melihat tanggal yang tersedia
+                                    </small>
+                                    <small id="tanggal-warning" class="text-danger d-block" style="display: none;">
                                         <i class="fas fa-exclamation-triangle"></i> Tanggal tidak sesuai dengan hari jadwal!
                                     </small>
                                 </div>
@@ -406,7 +541,7 @@ require_once '../includes/header.php';
                         </div>
                     </div>
                 </div>
-                <div class="modal-footer">
+                <div class="modal-footer" style="flex-shrink: 0; border-top: 1px solid #dee2e6;">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
                         <i class="fas fa-times me-1"></i>Batal
                     </button>
@@ -420,29 +555,214 @@ require_once '../includes/header.php';
 </div>
 
 <script>
-// Update dropdown berdasarkan tanggal yang dipilih
+// Konstanta batas mundur dari PHP
+const MAX_HARI_MUNDUR = <?= MAX_HARI_MUNDUR_JURNAL ?>;
+
+// Tanggal yang sudah di-approve dari database
+const approvedDates = <?= json_encode($approved_dates_map) ?>;
+
+// Data tanggal mundur per hari dari PHP (untuk modal request)
+const tanggalMundurPerHari = <?= json_encode($tanggal_mundur_per_hari) ?>;
+
+// Mapping hari ke index (0=Minggu, 1=Senin, dst)
+const hariToIndex = {
+    'Minggu': 0, 'Senin': 1, 'Selasa': 2, 'Rabu': 3,
+    'Kamis': 4, 'Jumat': 5, 'Sabtu': 6
+};
+
+const namaHari = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+const namaBulan = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 
+                   'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+
+// Variable global untuk menyimpan hari jadwal saat ini
+let currentHariJadwal = '';
+let currentIdMengajar = '';
+
+// Fungsi untuk populate dropdown tanggal request mundur (HARUS DIDEFINISIKAN LEBIH AWAL)
+function populateTanggalRequestDropdown(hariJadwal) {
+    const select = document.getElementById('tanggal_request');
+    select.innerHTML = '<option value="">-- Pilih Tanggal --</option>';
+    
+    console.log('Populating tanggal request - Hari:', hariJadwal);
+    console.log('Available data:', tanggalMundurPerHari);
+    
+    if (!hariJadwal || !tanggalMundurPerHari[hariJadwal]) {
+        console.log('No data available for', hariJadwal);
+        return;
+    }
+    
+    const tanggalList = tanggalMundurPerHari[hariJadwal];
+    console.log('Tanggal list:', tanggalList);
+    
+    if (tanggalList.length === 0) {
+        const option = document.createElement('option');
+        option.value = '';
+        option.textContent = 'Tidak ada tanggal tersedia';
+        option.disabled = true;
+        select.appendChild(option);
+        return;
+    }
+    
+    tanggalList.forEach(function(item) {
+        const option = document.createElement('option');
+        option.value = item.value;
+        option.textContent = item.label;
+        select.appendChild(option);
+    });
+    
+    console.log('Dropdown populated with', tanggalList.length, 'options');
+}
+
+// Fungsi untuk generate tanggal berdasarkan hari jadwal
+function generateTanggalOptions(hariJadwal, idMengajar) {
+    const selectTanggal = document.getElementById('tanggal');
+    const tanggalInfo = document.getElementById('tanggal-info');
+    const hariIndex = hariToIndex[hariJadwal];
+    currentHariJadwal = hariJadwal;
+    currentIdMengajar = idMengajar;
+    
+    // Clear existing options
+    selectTanggal.innerHTML = '';
+    
+    // Get date range (7 hari ke belakang sampai hari ini)
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const minDate = new Date(today);
+    minDate.setDate(minDate.getDate() - MAX_HARI_MUNDUR);
+    
+    // Collect all valid dates
+    const validDates = [];
+    let checkDate = new Date(today);
+    
+    // Loop dari hari ini ke belakang sampai batas mundur
+    while (checkDate >= minDate) {
+        if (checkDate.getDay() === hariIndex) {
+            validDates.push(new Date(checkDate));
+        }
+        checkDate.setDate(checkDate.getDate() - 1);
+    }
+    
+    // Add options (sudah terurut dari terbaru)
+    selectTanggal.innerHTML = '<option value="">-- Pilih Tanggal --</option>';
+    
+    if (validDates.length > 0) {
+        validDates.forEach((date, index) => {
+            const dateStr = date.toISOString().split('T')[0];
+            const dayName = namaHari[date.getDay()];
+            const displayDate = date.getDate() + ' ' + namaBulan[date.getMonth()] + ' ' + date.getFullYear();
+            
+            const option = document.createElement('option');
+            option.value = dateStr;
+            option.textContent = dayName + ', ' + displayDate;
+            
+            // Set tanggal hari ini sebagai default jika cocok
+            if (index === 0) {
+                option.selected = true;
+            }
+            
+            selectTanggal.appendChild(option);
+        });
+    }
+    
+    // Cek apakah ada tanggal yang sudah di-approve untuk id_mengajar ini
+    if (approvedDates[idMengajar] && approvedDates[idMengajar].length > 0) {
+        const approvedGroup = document.createElement('optgroup');
+        approvedGroup.label = '✅ Tanggal Disetujui Admin';
+        
+        approvedDates[idMengajar].forEach(dateStr => {
+            const date = new Date(dateStr);
+            const dayName = namaHari[date.getDay()];
+            const displayDate = date.getDate() + ' ' + namaBulan[date.getMonth()] + ' ' + date.getFullYear();
+            
+            const option = document.createElement('option');
+            option.value = dateStr;
+            option.textContent = '✅ ' + dayName + ', ' + displayDate;
+            option.style.color = 'green';
+            approvedGroup.appendChild(option);
+        });
+        
+        selectTanggal.appendChild(approvedGroup);
+    }
+    
+    // Tambahkan opsi untuk request tanggal lebih lama
+    const optGroup = document.createElement('optgroup');
+    optGroup.label = '── Tanggal Lebih Lama ──';
+    const requestOption = document.createElement('option');
+    requestOption.value = 'request_older';
+    requestOption.textContent = '📝 Minta Izin Tanggal Lain...';
+    optGroup.appendChild(requestOption);
+    selectTanggal.appendChild(optGroup);
+    
+    selectTanggal.disabled = false;
+    
+    let infoText = '<i class="fas fa-check-circle text-success"></i> ' + validDates.length + ' tanggal tersedia';
+    if (approvedDates[idMengajar] && approvedDates[idMengajar].length > 0) {
+        infoText += ' + <span class="text-success">' + approvedDates[idMengajar].length + ' tanggal disetujui</span>';
+    }
+    tanggalInfo.innerHTML = infoText;
+    
+    // Trigger change untuk cek jurnal yang sudah diisi
+    selectTanggal.dispatchEvent(new Event('change'));
+}
+
+// Update dropdown tanggal berdasarkan pilihan kelas/mapel
+document.getElementById('id_mengajar').addEventListener('change', function() {
+    const idMengajar = this.value;
+    const selectTanggal = document.getElementById('tanggal');
+    const tanggalInfo = document.getElementById('tanggal-info');
+    
+    if (!idMengajar) {
+        selectTanggal.innerHTML = '<option value="">-- Pilih Kelas & Mapel dulu --</option>';
+        selectTanggal.disabled = true;
+        tanggalInfo.innerHTML = '<i class="fas fa-info-circle"></i> Pilih kelas & mapel untuk melihat tanggal yang tersedia';
+        return;
+    }
+    
+    // Get hari jadwal dari selected option
+    const selectedOption = this.options[this.selectedIndex];
+    const hariJadwal = selectedOption.getAttribute('data-hari');
+    
+    // Generate tanggal options
+    generateTanggalOptions(hariJadwal, idMengajar);
+});
+
+// Event listener untuk tanggal - cek jurnal yang sudah diisi atau request older
 document.getElementById('tanggal').addEventListener('change', function() {
     const tanggal = this.value;
     const selectMengajar = document.getElementById('id_mengajar');
     
-    // Reset dan disable semua opsi dulu
-    selectMengajar.querySelectorAll('option').forEach(opt => {
-        opt.disabled = false;
-        opt.textContent = opt.textContent.replace(' (Sudah diisi)', '');
-    });
+    if (!selectMengajar.value) return;
+    
+    // Jika pilih "Minta Izin Tanggal Lain"
+    if (tanggal === 'request_older') {
+        // Simpan info kelas/mapel SEBELUM reset pilihan
+        const selectedOpt = selectMengajar.options[selectMengajar.selectedIndex];
+        const savedHari = selectedOpt.getAttribute('data-hari');
+        const savedIdMengajar = selectMengajar.value;
+        const savedMapelText = selectedOpt.textContent;
+        
+        // Reset pilihan tanggal ke kosong
+        this.value = '';
+        
+        // Panggil fungsi untuk buka modal (fungsi didefinisikan di bawah)
+        bukaModalRequestMundur(savedIdMengajar, savedHari, savedMapelText);
+        return;
+    }
+    
+    if (!tanggal) return;
     
     // Ambil data jurnal yang sudah diisi pada tanggal tersebut
     fetch(`ajax_get_jurnal_by_date.php?tanggal=${tanggal}`)
         .then(response => response.json())
         .then(data => {
-            if (data.sudah_isi) {
-                data.sudah_isi.forEach(id => {
-                    const opt = selectMengajar.querySelector(`option[value="${id}"]`);
-                    if (opt) {
-                        opt.disabled = true;
-                        opt.textContent = opt.textContent + ' (Sudah diisi)';
-                    }
-                });
+            if (data.sudah_isi && data.sudah_isi.includes(parseInt(selectMengajar.value))) {
+                // Tandai tanggal ini sudah diisi
+                this.classList.add('is-invalid');
+                document.getElementById('tanggal-warning').style.display = 'block';
+                document.getElementById('tanggal-warning').innerHTML = '<i class="fas fa-exclamation-triangle"></i> Jurnal untuk tanggal ini sudah diisi!';
+            } else {
+                this.classList.remove('is-invalid');
+                document.getElementById('tanggal-warning').style.display = 'none';
             }
         })
         .catch(err => console.error(err));
@@ -624,9 +944,14 @@ function validasiTanggalHari() {
     
     const selectedOption = selectMengajar.options[selectMengajar.selectedIndex];
     
+    // Jika belum pilih kelas, sembunyikan semua warning
     if (!selectMengajar.value) {
         infoHari.style.display = 'none';
         tanggalWarning.style.display = 'none';
+        inputTanggal.classList.remove('is-invalid');
+        submitBtn.disabled = false;
+        submitBtn.classList.remove('btn-secondary');
+        submitBtn.classList.add('btn-primary');
         return true;
     }
     
@@ -647,23 +972,13 @@ function validasiTanggalHari() {
         return true;
     }
     
-    // Cek apakah tanggal yang dipilih sesuai dengan hari jadwal
-    const tanggalDipilih = new Date(inputTanggal.value);
-    const hariDipilih = tanggalDipilih.getDay(); // 0=Minggu, 1=Senin, dst
-    const hariJadwalIndex = hariToDay[hariJadwal];
-    
-    if (hariDipilih !== hariJadwalIndex) {
-        tanggalWarning.style.display = 'block';
-        inputTanggal.classList.add('is-invalid');
-        submitBtn.disabled = true;
-        submitBtn.classList.add('btn-secondary');
-        submitBtn.classList.remove('btn-primary');
-        return false;
-    } else {
-        tanggalWarning.style.display = 'none';
-        inputTanggal.classList.remove('is-invalid');
-        return true;
-    }
+    // Tanggal sudah pasti sesuai karena di-generate berdasarkan hari jadwal
+    tanggalWarning.style.display = 'none';
+    inputTanggal.classList.remove('is-invalid');
+    submitBtn.disabled = false;
+    submitBtn.classList.remove('btn-secondary');
+    submitBtn.classList.add('btn-primary');
+    return true;
 }
 
 // Event listeners untuk cek jam kelas
@@ -683,6 +998,14 @@ document.getElementById('modalIsiJurnal').addEventListener('shown.bs.modal', fun
     cekJamKelas();
 });
 
+// Fungsi untuk menandai notifikasi sudah dibaca
+function markNotifRead(notifId) {
+    var xhr = new XMLHttpRequest();
+    xhr.open('POST', 'ajax_request_jurnal_mundur.php', true);
+    xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+    xhr.send('action=mark_read&request_id=' + notifId);
+}
+
 // Auto open modal jika ada parameter open_modal
 <?php if (isset($_GET['open_modal']) && $_GET['open_modal'] == '1'): ?>
 document.addEventListener('DOMContentLoaded', function() {
@@ -690,6 +1013,206 @@ document.addEventListener('DOMContentLoaded', function() {
     modal.show();
 });
 <?php endif; ?>
+</script>
+
+<!-- Toast Container untuk Notifikasi -->
+<div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 9999;">
+    <div id="toastNotification" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="toast-header" id="toastHeader">
+            <i class="fas fa-bell me-2" id="toastIcon"></i>
+            <strong class="me-auto" id="toastTitle">Notifikasi</strong>
+            <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+        <div class="toast-body" id="toastBody"></div>
+    </div>
+</div>
+
+<!-- Modal Request Jurnal Mundur -->
+<div class="modal fade" id="modalRequestMundur" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-warning text-dark">
+                <h5 class="modal-title">
+                    <i class="fas fa-calendar-alt me-2"></i>Minta Izin Jurnal Mundur
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-info small">
+                    <i class="fas fa-info-circle me-1"></i>
+                    Anda akan mengirim permintaan ke admin untuk mengisi jurnal lebih dari <?= MAX_HARI_MUNDUR_JURNAL ?> hari yang lalu.
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Kelas & Mata Pelajaran</label>
+                    <div class="form-control bg-light" id="request-info-mapel">-</div>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Hari Jadwal</label>
+                    <div class="form-control bg-light" id="request-info-hari">-</div>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="tanggal_request" class="form-label fw-bold">Tanggal yang Diminta <span class="text-danger">*</span></label>
+                    <select class="form-select" id="tanggal_request" required>
+                        <option value="">-- Pilih Tanggal --</option>
+                    </select>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="alasan_request" class="form-label fw-bold">Alasan <span class="text-danger">*</span></label>
+                    <textarea class="form-control" id="alasan_request" rows="3" required 
+                              placeholder="Jelaskan mengapa Anda perlu mengisi jurnal untuk tanggal tersebut..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                <button type="button" class="btn btn-warning" id="btn-submit-request" onclick="kirimPermintaanMundur()">
+                    <i class="fas fa-paper-plane me-1"></i>Kirim Permintaan
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Variable untuk menyimpan ID Mengajar -->
+<script>
+var requestIdMengajar = '';
+
+// Fungsi untuk menampilkan toast notification
+function showToast(type, title, message, autoHide = true) {
+    var toast = document.getElementById('toastNotification');
+    var header = document.getElementById('toastHeader');
+    var icon = document.getElementById('toastIcon');
+    var titleEl = document.getElementById('toastTitle');
+    var body = document.getElementById('toastBody');
+    
+    // Reset classes
+    header.className = 'toast-header';
+    icon.className = 'fas me-2';
+    
+    // Set style berdasarkan type
+    if (type === 'success') {
+        header.classList.add('bg-success', 'text-white');
+        icon.classList.add('fa-check-circle');
+    } else if (type === 'error') {
+        header.classList.add('bg-danger', 'text-white');
+        icon.classList.add('fa-times-circle');
+    } else if (type === 'warning') {
+        header.classList.add('bg-warning', 'text-dark');
+        icon.classList.add('fa-exclamation-triangle');
+    } else {
+        header.classList.add('bg-info', 'text-white');
+        icon.classList.add('fa-info-circle');
+    }
+    
+    titleEl.textContent = title;
+    body.innerHTML = message;
+    
+    var bsToast = new bootstrap.Toast(toast, {
+        autohide: autoHide,
+        delay: autoHide ? 5000 : 999999
+    });
+    bsToast.show();
+}
+
+function kirimPermintaanMundur() {
+    var idMengajar = requestIdMengajar;
+    var tanggal = document.getElementById('tanggal_request').value;
+    var alasan = document.getElementById('alasan_request').value.trim();
+    
+    // Validasi
+    if (!idMengajar) {
+        showToast('error', 'Error', 'ID Mengajar tidak ditemukan. Silakan tutup modal dan coba lagi.');
+        return;
+    }
+    if (!tanggal) {
+        showToast('warning', 'Peringatan', 'Pilih tanggal terlebih dahulu!');
+        return;
+    }
+    if (!alasan) {
+        showToast('warning', 'Peringatan', 'Isi alasan terlebih dahulu!');
+        return;
+    }
+    
+    // Disable button
+    var btn = document.getElementById('btn-submit-request');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mengirim...';
+    
+    // Buat request
+    var xhr = new XMLHttpRequest();
+    xhr.open('POST', 'ajax_request_jurnal_mundur.php', true);
+    xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+    
+    xhr.onreadystatechange = function() {
+        if (xhr.readyState === 4) {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-paper-plane me-1"></i>Kirim Permintaan';
+            
+            if (xhr.status === 200) {
+                try {
+                    var response = JSON.parse(xhr.responseText);
+                    if (response.success) {
+                        // Tutup modal dulu
+                        var modal = bootstrap.Modal.getInstance(document.getElementById('modalRequestMundur'));
+                        if (modal) modal.hide();
+                        
+                        // Tampilkan toast sukses
+                        showToast('success', 'Berhasil!', '<i class="fas fa-check me-1"></i>' + response.message + '<br><small class="text-muted">Halaman akan dimuat ulang...</small>');
+                        
+                        // Reload setelah 2 detik
+                        setTimeout(function() {
+                            location.reload();
+                        }, 2000);
+                    } else {
+                        showToast('error', 'Gagal', response.message);
+                    }
+                } catch (e) {
+                    showToast('error', 'Error', 'Gagal memproses response dari server.<br><small>' + xhr.responseText.substring(0, 100) + '</small>');
+                }
+            } else {
+                showToast('error', 'Error', 'Terjadi kesalahan jaringan (HTTP ' + xhr.status + ')');
+            }
+        }
+    };
+    
+    var data = 'action=submit_request&id_mengajar=' + encodeURIComponent(idMengajar) + 
+               '&tanggal_jurnal=' + encodeURIComponent(tanggal) + 
+               '&alasan=' + encodeURIComponent(alasan);
+    xhr.send(data);
+}
+
+function bukaModalRequestMundur(idMengajar, hariJadwal, mapelText) {
+    // Simpan ID mengajar ke variabel global
+    requestIdMengajar = idMengajar;
+    
+    // Set info di modal
+    document.getElementById('request-info-mapel').textContent = mapelText;
+    document.getElementById('request-info-hari').textContent = hariJadwal;
+    
+    // Reset form
+    document.getElementById('tanggal_request').value = '';
+    document.getElementById('alasan_request').value = '';
+    
+    // Populate tanggal
+    var select = document.getElementById('tanggal_request');
+    select.innerHTML = '<option value="">-- Pilih Tanggal --</option>';
+    
+    if (tanggalMundurPerHari[hariJadwal]) {
+        tanggalMundurPerHari[hariJadwal].forEach(function(item) {
+            var opt = document.createElement('option');
+            opt.value = item.value;
+            opt.textContent = item.label;
+            select.appendChild(opt);
+        });
+    }
+    
+    // Buka modal
+    var modal = new bootstrap.Modal(document.getElementById('modalRequestMundur'));
+    modal.show();
+}
 </script>
 
 <?php require_once '../includes/footer.php'; ?>
