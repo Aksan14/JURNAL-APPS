@@ -137,16 +137,22 @@ if ($tipe == 'siswa') {
     $sheet->setCellValue('A1', 'ID_GURU');
     $sheet->setCellValue('B1', 'ID_MAPEL');
     $sheet->setCellValue('C1', 'ID_KELAS');
-    $sheet->setCellValue('D1', 'JUMLAH_JAM_MINGGU');
-    $sheet->getStyle('A1:D1')->getFont()->setBold(true);
+    $sheet->setCellValue('D1', 'HARI');
+    $sheet->setCellValue('E1', 'JAM_KE');
+    $sheet->setCellValue('F1', 'JUMLAH_JAM_MINGGU');
+    $sheet->getStyle('A1:F1')->getFont()->setBold(true);
     $sheet->getColumnDimension('A')->setWidth(12);
     $sheet->getColumnDimension('B')->setWidth(12);
     $sheet->getColumnDimension('C')->setWidth(12);
-    $sheet->getColumnDimension('D')->setWidth(20);
+    $sheet->getColumnDimension('D')->setWidth(12);
+    $sheet->getColumnDimension('E')->setWidth(12);
+    $sheet->getColumnDimension('F')->setWidth(20);
     $filename = 'TEMPLATE_IMPORT_PLOTTING.xlsx';
     
-    $sheet->setCellValue('F2', 'Isi ID sesuai dengan sheet Referensi');
-    $sheet->getStyle('F2')->getFont()->setColor(new \PhpOffice\PhpSpreadsheet\Style\Color('FFFF0000'));
+    $sheet->setCellValue('H2', 'Isi ID sesuai dengan sheet Referensi');
+    $sheet->setCellValue('H3', 'HARI: Senin, Selasa, Rabu, Kamis, Jumat, Sabtu');
+    $sheet->setCellValue('H4', 'JAM_KE: contoh 1-2, 3-4, 5');
+    $sheet->getStyle('H2:H4')->getFont()->setColor(new \PhpOffice\PhpSpreadsheet\Style\Color('FFFF0000'));
     
     // Referensi Guru
     try {

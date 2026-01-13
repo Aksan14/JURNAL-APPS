@@ -224,31 +224,42 @@ if (isset($_POST['upload_file']) && isset($_FILES['file_excel'])) {
                     $id_guru = trim($row['A'] ?? '');
                     $id_mapel = trim($row['B'] ?? '');
                     $id_kelas = trim($row['C'] ?? '');
-                    $jumlah_jam = (int)trim($row['D'] ?? 0);
+                    $hari = trim($row['D'] ?? '');
+                    $jam_ke = trim($row['E'] ?? '');
+                    $jumlah_jam = (int)trim($row['F'] ?? 0);
 
-                    if (empty($id_guru) || empty($id_mapel) || empty($id_kelas)) {
+                    // Validasi hari yang diizinkan
+                    $hari_valid = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+                    if (!empty($hari) && !in_array($hari, $hari_valid)) {
                         $gagal++;
-                        $details[] = "Baris $baris_ke: ID Guru/Mapel/Kelas kosong";
+                        $details[] = "Baris $baris_ke: Hari '$hari' tidak valid (gunakan: Senin, Selasa, Rabu, Kamis, Jumat, Sabtu)";
                         $baris_ke++;
                         continue;
                     }
 
-                    // Cek duplikat
-                    $check = $pdo->prepare("SELECT id FROM tbl_mengajar WHERE id_guru = ? AND id_mapel = ? AND id_kelas = ?");
-                    $check->execute([$id_guru, $id_mapel, $id_kelas]);
+                    if (empty($id_guru) || empty($id_mapel) || empty($id_kelas) || empty($hari) || empty($jam_ke)) {
+                        $gagal++;
+                        $details[] = "Baris $baris_ke: Data tidak lengkap (ID Guru/Mapel/Kelas/Hari/Jam_Ke kosong)";
+                        $baris_ke++;
+                        continue;
+                    }
+
+                    // Cek duplikat berdasarkan unique key uk_jadwal (id_kelas, hari, jam_ke)
+                    $check = $pdo->prepare("SELECT id FROM tbl_mengajar WHERE id_kelas = ? AND hari = ? AND jam_ke = ?");
+                    $check->execute([$id_kelas, $hari, $jam_ke]);
                     $existing = $check->fetch();
 
                     if ($existing) {
                         if ($mode == 'update') {
-                            $stmt = $pdo->prepare("UPDATE tbl_mengajar SET jumlah_jam_mingguan = ? WHERE id_guru = ? AND id_mapel = ? AND id_kelas = ?");
-                            $stmt->execute([$jumlah_jam, $id_guru, $id_mapel, $id_kelas]);
+                            $stmt = $pdo->prepare("UPDATE tbl_mengajar SET id_guru = ?, id_mapel = ?, jumlah_jam_mingguan = ? WHERE id_kelas = ? AND hari = ? AND jam_ke = ?");
+                            $stmt->execute([$id_guru, $id_mapel, $jumlah_jam, $id_kelas, $hari, $jam_ke]);
                             $update++;
                         } else {
                             $skip++;
                         }
                     } else {
-                        $stmt = $pdo->prepare("INSERT INTO tbl_mengajar (id_guru, id_mapel, id_kelas, jumlah_jam_mingguan) VALUES (?, ?, ?, ?)");
-                        $stmt->execute([$id_guru, $id_mapel, $id_kelas, $jumlah_jam]);
+                        $stmt = $pdo->prepare("INSERT INTO tbl_mengajar (id_guru, id_mapel, id_kelas, hari, jam_ke, jumlah_jam_mingguan) VALUES (?, ?, ?, ?, ?, ?)");
+                        $stmt->execute([$id_guru, $id_mapel, $id_kelas, $hari, $jam_ke, $jumlah_jam]);
                         $sukses++;
                     }
                 }
@@ -532,7 +543,9 @@ require_once '../includes/header.php';
                                 A = ID Guru (wajib, lihat sheet referensi)<br>
                                 B = ID Mapel (wajib, lihat sheet referensi)<br>
                                 C = ID Kelas (wajib, lihat sheet referensi)<br>
-                                D = Jumlah Jam/Minggu (opsional, default 0)
+                                D = Hari (wajib: Senin/Selasa/Rabu/Kamis/Jumat/Sabtu)<br>
+                                E = Jam Ke (wajib, contoh: 1-2, 3-4, 5)<br>
+                                F = Jumlah Jam/Minggu (opsional, default 0)
                             </div>
                         </div>
                         <div class="col-md-6">
