@@ -493,14 +493,11 @@ require_once '../includes/header.php';
                                     <small id="tanggal-info" class="text-muted">
                                         <i class="fas fa-info-circle"></i> Pilih kelas & mapel untuk melihat tanggal yang tersedia
                                     </small>
-                                    <small id="tanggal-warning" class="text-danger d-block" style="display: none;">
-                                        <i class="fas fa-exclamation-triangle"></i> Tanggal tidak sesuai dengan hari jadwal!
-                                    </small>
                                 </div>
                                 <div class="col-sm-6 mb-3">
                                     <label for="jam_ke" class="form-label fw-bold">Jam Ke-</label>
-                                    <input type="text" class="form-control" id="jam_ke" name="jam_ke" placeholder="Misal: 1-2" required>
-                                    <small class="text-muted">Format: 1-2 (untuk 2 jam), atau 3 (untuk 1 jam)</small>
+                                    <input type="text" class="form-control bg-light" id="jam_ke" name="jam_ke" readonly required>
+                                    <small class="text-muted"><i class="fas fa-info-circle"></i> Otomatis sesuai jadwal mengajar</small>
                                 </div>
                             </div>
                             
@@ -756,13 +753,11 @@ document.getElementById('tanggal').addEventListener('change', function() {
         .then(response => response.json())
         .then(data => {
             if (data.sudah_isi && data.sudah_isi.includes(parseInt(selectMengajar.value))) {
-                // Tandai tanggal ini sudah diisi
+                // Tandai tanggal ini sudah diisi - tampilkan toast
                 this.classList.add('is-invalid');
-                document.getElementById('tanggal-warning').style.display = 'block';
-                document.getElementById('tanggal-warning').innerHTML = '<i class="fas fa-exclamation-triangle"></i> Jurnal untuk tanggal ini sudah diisi!';
+                showToast('warning', 'Perhatian', 'Jurnal untuk tanggal ini sudah diisi!');
             } else {
                 this.classList.remove('is-invalid');
-                document.getElementById('tanggal-warning').style.display = 'none';
             }
         })
         .catch(err => console.error(err));
@@ -939,15 +934,13 @@ function validasiTanggalHari() {
     const inputTanggal = document.getElementById('tanggal');
     const infoHari = document.getElementById('info-hari-jadwal');
     const namaHariSpan = document.getElementById('nama-hari-jadwal');
-    const tanggalWarning = document.getElementById('tanggal-warning');
     const submitBtn = document.querySelector('button[name="simpan_jurnal"]');
     
     const selectedOption = selectMengajar.options[selectMengajar.selectedIndex];
     
-    // Jika belum pilih kelas, sembunyikan semua warning
+    // Jika belum pilih kelas, sembunyikan info
     if (!selectMengajar.value) {
         infoHari.style.display = 'none';
-        tanggalWarning.style.display = 'none';
         inputTanggal.classList.remove('is-invalid');
         submitBtn.disabled = false;
         submitBtn.classList.remove('btn-secondary');
@@ -962,18 +955,10 @@ function validasiTanggalHari() {
     infoHari.style.display = 'block';
     namaHariSpan.textContent = hariJadwal + ' (Jam ' + jamJadwal + ')';
     
-    // Auto-fill jam ke dari jadwal
-    if (document.getElementById('jam_ke').value === '') {
-        document.getElementById('jam_ke').value = jamJadwal;
-    }
-    
-    if (!inputTanggal.value) {
-        tanggalWarning.style.display = 'none';
-        return true;
-    }
+    // Set jam ke otomatis dari jadwal (selalu update)
+    document.getElementById('jam_ke').value = jamJadwal;
     
     // Tanggal sudah pasti sesuai karena di-generate berdasarkan hari jadwal
-    tanggalWarning.style.display = 'none';
     inputTanggal.classList.remove('is-invalid');
     submitBtn.disabled = false;
     submitBtn.classList.remove('btn-secondary');

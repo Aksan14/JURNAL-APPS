@@ -1,17 +1,9 @@
--- =====================================================
--- DATABASE: jurnal_app
--- Script Database Lengkap - Aplikasi Jurnal Guru
--- Versi: 3.0 (Optimized - Unused Fields Removed)
--- Tanggal: 2026-01-14
--- =====================================================
+
 
 -- Buat database
 CREATE DATABASE IF NOT EXISTS jurnal_app CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
 USE jurnal_app;
 
--- =====================================================
--- DROP TABLES (urutan terbalik karena foreign key)
--- =====================================================
 DROP TABLE IF EXISTS tbl_request_jurnal_mundur;
 DROP TABLE IF EXISTS tbl_presensi_siswa;
 DROP TABLE IF EXISTS tbl_jurnal;
@@ -22,10 +14,6 @@ DROP TABLE IF EXISTS tbl_guru;
 DROP TABLE IF EXISTS tbl_mapel;
 DROP TABLE IF EXISTS tbl_users;
 
--- =====================================================
--- TABEL 1: tbl_users (Akun Login)
--- Removed: foto_profil, last_login, is_active, created_at, updated_at
--- =====================================================
 CREATE TABLE tbl_users (
     id INT AUTO_INCREMENT PRIMARY KEY,
     username VARCHAR(50) NOT NULL UNIQUE,
@@ -35,21 +23,12 @@ CREATE TABLE tbl_users (
     INDEX idx_role (role)
 ) ENGINE=InnoDB;
 
--- =====================================================
--- TABEL 2: tbl_mapel (Mata Pelajaran)
--- Removed: kode_mapel, kelompok_mapel, created_at, updated_at
--- =====================================================
 CREATE TABLE tbl_mapel (
     id INT AUTO_INCREMENT PRIMARY KEY,
     nama_mapel VARCHAR(100) NOT NULL,
     INDEX idx_nama_mapel (nama_mapel)
 ) ENGINE=InnoDB;
 
--- =====================================================
--- TABEL 3: tbl_guru (Data Guru)
--- Removed: jenis_kelamin, tempat_lahir, tanggal_lahir, alamat, 
---          no_hp, jabatan, status_kepegawaian, created_at, updated_at
--- =====================================================
 CREATE TABLE tbl_guru (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT DEFAULT NULL,
@@ -62,10 +41,6 @@ CREATE TABLE tbl_guru (
     INDEX idx_nama_guru (nama_guru)
 ) ENGINE=InnoDB;
 
--- =====================================================
--- TABEL 4: tbl_kelas (Data Kelas)
--- Removed: tingkat, jurusan, tahun_ajaran, created_at, updated_at
--- =====================================================
 CREATE TABLE tbl_kelas (
     id INT AUTO_INCREMENT PRIMARY KEY,
     nama_kelas VARCHAR(20) NOT NULL UNIQUE,
@@ -74,11 +49,6 @@ CREATE TABLE tbl_kelas (
     INDEX idx_nama_kelas (nama_kelas)
 ) ENGINE=InnoDB;
 
--- =====================================================
--- TABEL 5: tbl_siswa (Data Siswa)
--- Removed: nisn, jenis_kelamin, tempat_lahir, tanggal_lahir, 
---          alamat, no_hp, nama_orangtua, no_hp_orangtua, created_at, updated_at
--- =====================================================
 CREATE TABLE tbl_siswa (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT DEFAULT NULL,
@@ -93,10 +63,6 @@ CREATE TABLE tbl_siswa (
     INDEX idx_id_kelas (id_kelas)
 ) ENGINE=InnoDB;
 
--- =====================================================
--- TABEL 6: tbl_mengajar (Jadwal Mengajar)
--- Removed: tahun_ajaran, semester, created_at, updated_at
--- =====================================================
 CREATE TABLE tbl_mengajar (
     id INT AUTO_INCREMENT PRIMARY KEY,
     id_guru INT NOT NULL,
@@ -116,11 +82,6 @@ CREATE TABLE tbl_mengajar (
     INDEX idx_jadwal_lengkap (id_kelas, hari, jam_ke)
 ) ENGINE=InnoDB;
 
--- =====================================================
--- TABEL 7: tbl_jurnal (Jurnal Pembelajaran)
--- Removed: kegiatan_pembelajaran, metode_pembelajaran, 
---          media_pembelajaran, hambatan
--- =====================================================
 CREATE TABLE tbl_jurnal (
     id INT AUTO_INCREMENT PRIMARY KEY,
     id_mengajar INT NOT NULL,
@@ -136,10 +97,6 @@ CREATE TABLE tbl_jurnal (
     INDEX idx_mengajar (id_mengajar)
 ) ENGINE=InnoDB;
 
--- =====================================================
--- TABEL 8: tbl_presensi_siswa (Absensi Siswa)
--- Removed: keterangan, created_at
--- =====================================================
 CREATE TABLE tbl_presensi_siswa (
     id INT AUTO_INCREMENT PRIMARY KEY,
     id_jurnal INT NOT NULL,
@@ -153,9 +110,6 @@ CREATE TABLE tbl_presensi_siswa (
     INDEX idx_status (status_kehadiran)
 ) ENGINE=InnoDB;
 
--- =====================================================
--- TABEL 9: tbl_request_jurnal_mundur (Permintaan Jurnal Mundur)
--- =====================================================
 CREATE TABLE tbl_request_jurnal_mundur (
     id INT AUTO_INCREMENT PRIMARY KEY,
     id_guru INT NOT NULL,
@@ -176,17 +130,11 @@ CREATE TABLE tbl_request_jurnal_mundur (
     INDEX idx_tanggal (tanggal_jurnal)
 ) ENGINE=InnoDB;
 
--- =====================================================
--- INSERT DATA DEFAULT
--- =====================================================
 
--- Admin default (password: password)
 INSERT INTO tbl_users (username, password_hash, role) VALUES 
 ('admin', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'admin');
 
--- =====================================================
--- VIEW: Jadwal belum diisi jurnal hari ini
--- =====================================================
+
 CREATE OR REPLACE VIEW v_jadwal_belum_isi_jurnal AS
 SELECT 
     m.id as id_mengajar,
@@ -240,9 +188,6 @@ LEFT JOIN tbl_jurnal j ON m.id = j.id_mengajar
 WHERE j.id IS NOT NULL
 GROUP BY g.id, g.nama_guru, g.nip, YEAR(j.tanggal), MONTH(j.tanggal);
 
--- =====================================================
--- STORED PROCEDURE: Cek guru tidak masuk
--- =====================================================
 DELIMITER //
 
 CREATE PROCEDURE sp_cek_guru_tidak_masuk(IN p_tanggal DATE)
@@ -288,7 +233,4 @@ END //
 
 DELIMITER ;
 
--- =====================================================
--- SELESAI
--- =====================================================
 SELECT 'Database jurnal_app berhasil dibuat!' as status;
