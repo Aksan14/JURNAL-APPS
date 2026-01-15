@@ -55,13 +55,15 @@ if ($tipe == 'siswa') {
 // TEMPLATE GURU
 // ===================================
 elseif ($tipe == 'guru') {
-    fputcsv($output, ['NIP', 'NAMA_GURU', 'EMAIL']);
-    fputcsv($output, ['1990123456', 'Nama Guru Contoh', 'email@contoh.com']);
+    fputcsv($output, ['NIP', 'NAMA_GURU', 'EMAIL', 'USERNAME', 'PASSWORD']);
+    fputcsv($output, ['1990123456', 'Nama Guru Contoh', 'email@contoh.com', 'gurucontoh', 'password123']);
     fputcsv($output, ['']);
     fputcsv($output, ['=== CATATAN ===']);
     fputcsv($output, ['NIP boleh kosong']);
     fputcsv($output, ['NAMA_GURU wajib diisi']);
     fputcsv($output, ['EMAIL boleh kosong']);
+    fputcsv($output, ['USERNAME - jika kosong akan digenerate otomatis dari nama guru']);
+    fputcsv($output, ['PASSWORD - jika kosong akan sama dengan username']);
 }
 
 // ===================================

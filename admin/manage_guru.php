@@ -131,7 +131,6 @@ require_once '../includes/header.php';
                                     </button>
                                 <?php endif; ?>
                                 <a href="edit_guru.php?id=<?php echo $g['id']; ?>" class="btn btn-sm btn-info text-white"><i class="fas fa-edit"></i></a>
-                                <button class="btn btn-sm btn-warning" title="Reset Password"><i class="fas fa-key"></i></button>
                             </td>
                         </tr>
                         

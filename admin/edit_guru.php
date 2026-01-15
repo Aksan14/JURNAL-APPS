@@ -33,15 +33,14 @@ if (isset($_POST['update_guru'])) {
     $nip = trim($_POST['nip']);
     $nama = trim($_POST['nama_guru']);
     $username = trim($_POST['username']);
-    $role = $_POST['role']; // guru atau walikelas
     $user_id = $guru['user_id'];
 
     try {
         $pdo->beginTransaction();
 
-        // Update Tabel Users (Username & Role)
-        $upd_user = $pdo->prepare("UPDATE tbl_users SET username = ?, role = ? WHERE id = ?");
-        $upd_user->execute([$username, $role, $user_id]);
+        // Update Tabel Users (Username)
+        $upd_user = $pdo->prepare("UPDATE tbl_users SET username = ? WHERE id = ?");
+        $upd_user->execute([$username, $user_id]);
 
         // Update Tabel Guru (NIP & Nama)
         $upd_guru = $pdo->prepare("UPDATE tbl_guru SET nip = ?, nama_guru = ? WHERE id = ?");
@@ -93,22 +92,10 @@ require_once '../includes/header.php';
                             <input type="text" name="nama_guru" class="form-control" value="<?php echo htmlspecialchars($guru['nama_guru']); ?>" required>
                         </div>
 
-                        <div class="mb-3">
-                            <label class="form-label">Peran / Role</label>
-                            <select name="role" class="form-select">
-                                <option value="guru" <?php echo ($guru['role'] == 'guru') ? 'selected' : ''; ?>>Guru Mata Pelajaran</option>
-                                <option value="walikelas" <?php echo ($guru['role'] == 'walikelas') ? 'selected' : ''; ?>>Wali Kelas</option>
-                            </select>
-                            <div class="form-text">Wali Kelas memiliki menu tambahan rekap absensi.</div>
-                        </div>
-
                         <hr>
                         <div class="d-flex justify-content-between">
                             <button type="submit" name="update_guru" class="btn btn-primary px-4">
                                 <i class="fas fa-save me-1"></i> Simpan Perubahan
-                            </button>
-                            <button type="button" class="btn btn-outline-warning btn-sm" onclick="alert('Fitur reset password bisa Anda tambahkan di sini.')">
-                                <i class="fas fa-key me-1"></i> Reset Password
                             </button>
                         </div>
                     </form>

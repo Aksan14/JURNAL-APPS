@@ -80,9 +80,18 @@ if ($tipe == 'siswa') {
     $sheet->getColumnDimension('B')->setWidth(35);
     $sheet->getColumnDimension('C')->setWidth(30);
     $sheet->getColumnDimension('D')->setWidth(20);
+    $sheet->getColumnDimension('E')->setWidth(20);
     $filename = 'TEMPLATE_IMPORT_GURU.xlsx';
-    $sheet->setCellValue('G2', 'NAMA_GURU, USERNAME, dan PASSWORD wajib diisi.');
-    $sheet->getStyle('G2')->getFont()->setColor(new \PhpOffice\PhpSpreadsheet\Style\Color('FFFF0000'));
+    
+    // Catatan pengisian
+    $sheet->setCellValue('G2', 'CATATAN PENGISIAN:');
+    $sheet->setCellValue('G3', '- NAMA_GURU wajib diisi');
+    $sheet->setCellValue('G4', '- NIP dan EMAIL boleh kosong');
+    $sheet->setCellValue('G5', '- USERNAME jika kosong akan digenerate otomatis dari nama');
+    $sheet->setCellValue('G6', '- PASSWORD jika kosong akan sama dengan username');
+    $sheet->getStyle('G2')->getFont()->setBold(true);
+    $sheet->getStyle('G2:G6')->getFont()->setColor(new \PhpOffice\PhpSpreadsheet\Style\Color('FFFF0000'));
+    $sheet->getColumnDimension('G')->setWidth(50);
 
 // ===================================
 // TEMPLATE MAPEL

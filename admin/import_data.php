@@ -118,6 +118,8 @@ if (isset($_POST['upload_file']) && isset($_FILES['file_excel'])) {
                     $nip = trim($row['A'] ?? '');
                     $nama_guru = trim($row['B'] ?? '');
                     $email = trim($row['C'] ?? '');
+                    $username = trim($row['D'] ?? '');
+                    $password = trim($row['E'] ?? '');
 
                     if (empty($nama_guru)) {
                         $gagal++;
@@ -146,10 +148,48 @@ if (isset($_POST['upload_file']) && isset($_FILES['file_excel'])) {
                         }
                     }
 
-                    // Insert guru baru (tanpa akun dulu)
-                    $stmt = $pdo->prepare("INSERT INTO tbl_guru (nip, nama_guru, email) VALUES (?, ?, ?)");
-                    $stmt->execute([$nip, $nama_guru, $email]);
+                    // Generate username jika kosong (dari nama guru atau NIP)
+                    if (empty($username)) {
+                        // Buat username dari nama guru (lowercase, tanpa spasi)
+                        $username = strtolower(preg_replace('/[^a-zA-Z0-9]/', '', $nama_guru));
+                        // Pastikan username unik
+                        $base_username = $username;
+                        $counter = 1;
+                        while (true) {
+                            $checkUser = $pdo->prepare("SELECT id FROM tbl_users WHERE username = ?");
+                            $checkUser->execute([$username]);
+                            if (!$checkUser->fetch()) break;
+                            $username = $base_username . $counter;
+                            $counter++;
+                        }
+                    } else {
+                        // Cek apakah username sudah ada
+                        $checkUser = $pdo->prepare("SELECT id FROM tbl_users WHERE username = ?");
+                        $checkUser->execute([$username]);
+                        if ($checkUser->fetch()) {
+                            $gagal++;
+                            $details[] = "Baris $baris_ke: Username '$username' sudah ada";
+                            $baris_ke++;
+                            continue;
+                        }
+                    }
+
+                    // Password default = username jika kosong
+                    if (empty($password)) {
+                        $password = $username;
+                    }
+                    $password_hash = password_hash($password, PASSWORD_DEFAULT);
+
+                    // 1. Insert ke tbl_users dulu
+                    $stmt1 = $pdo->prepare("INSERT INTO tbl_users (username, password_hash, role) VALUES (?, ?, 'guru')");
+                    $stmt1->execute([$username, $password_hash]);
+                    $user_id = $pdo->lastInsertId();
+
+                    // 2. Insert guru baru dengan user_id
+                    $stmt = $pdo->prepare("INSERT INTO tbl_guru (user_id, nip, nama_guru, email) VALUES (?, ?, ?, ?)");
+                    $stmt->execute([$user_id, $nip, $nama_guru, $email]);
                     $sukses++;
+                    $details[] = "Baris $baris_ke: Guru '$nama_guru' berhasil ditambah dengan username '$username'";
 
                 // ===================================
                 // PROSES IMPORT MAPEL
