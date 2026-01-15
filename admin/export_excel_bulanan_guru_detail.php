@@ -43,10 +43,119 @@ $diff = $start_date->diff($end_date);
 $total_hari_filter = $diff->days + 1;
 $total_minggu_penuh = floor($total_hari_filter / 7);
 
-// Ambil semua roster mengajar
+// Hitung jumlah hari libur per hari dalam bulan ini
+$stmt_libur = $pdo->prepare("
+    SELECT 
+        DATE_FORMAT(h.tanggal, '%W') as nama_hari_en,
+        h.id_kelas,
+        COUNT(*) as jumlah_libur
+    FROM tbl_hari_libur h
+    WHERE h.tanggal BETWEEN ? AND ?
+    GROUP BY DATE_FORMAT(h.tanggal, '%W'), h.id_kelas
+");
+$stmt_libur->execute([$tanggal_mulai, $tanggal_selesai]);
+
+$hari_mapping = [
+    'Monday' => 'Senin', 'Tuesday' => 'Selasa', 'Wednesday' => 'Rabu',
+    'Thursday' => 'Kamis', 'Friday' => 'Jumat', 'Saturday' => 'Sabtu', 'Sunday' => 'Minggu'
+];
+
+$libur_per_hari_kelas = [];
+while ($row_libur = $stmt_libur->fetch()) {
+    $hari_id = $hari_mapping[$row_libur['nama_hari_en']] ?? $row_libur['nama_hari_en'];
+    $kelas_id = $row_libur['id_kelas'] ?? 'all';
+    if (!isset($libur_per_hari_kelas[$hari_id])) {
+        $libur_per_hari_kelas[$hari_id] = [];
+    }
+    $libur_per_hari_kelas[$hari_id][$kelas_id] = $row_libur['jumlah_libur'];
+}
+
+function getJumlahLiburExcel($hari, $id_kelas, $libur_data) {
+    $libur_semua = $libur_data[$hari]['all'] ?? 0;
+    $libur_kelas = $libur_data[$hari][$id_kelas] ?? 0;
+    return $libur_semua + $libur_kelas;
+}
+
+// Ambil detail libur per hari dan kelas
+$libur_detail_per_hari_excel = [];
+$stmt_libur_detail = $pdo->prepare("
+    SELECT h.tanggal, h.nama_libur, h.id_kelas,
+           DATE_FORMAT(h.tanggal, '%W') as hari_en,
+           DATE_FORMAT(h.tanggal, '%d') as tgl
+    FROM tbl_hari_libur h
+    WHERE h.tanggal BETWEEN ? AND ?
+    ORDER BY h.tanggal
+");
+$stmt_libur_detail->execute([$tanggal_mulai, $tanggal_selesai]);
+while ($ld = $stmt_libur_detail->fetch()) {
+    $hari_indo = $hari_mapping[$ld['hari_en']] ?? $ld['hari_en'];
+    $kelas_key = $ld['id_kelas'] ?? 'all';
+    if (!isset($libur_detail_per_hari_excel[$hari_indo])) {
+        $libur_detail_per_hari_excel[$hari_indo] = [];
+    }
+    if (!isset($libur_detail_per_hari_excel[$hari_indo][$kelas_key])) {
+        $libur_detail_per_hari_excel[$hari_indo][$kelas_key] = [];
+    }
+    $libur_detail_per_hari_excel[$hari_indo][$kelas_key][] = [
+        'tgl' => $ld['tgl'],
+        'nama' => $ld['nama_libur']
+    ];
+}
+
+// Ambil detail jam khusus per hari dan kelas
+$jk_detail_per_hari_excel = [];
+$stmt_jk_detail = $pdo->prepare("
+    SELECT jk.tanggal, jk.alasan, jk.max_jam, jk.id_kelas,
+           DATE_FORMAT(jk.tanggal, '%W') as hari_en,
+           DATE_FORMAT(jk.tanggal, '%d') as tgl
+    FROM tbl_jam_khusus jk
+    WHERE jk.tanggal BETWEEN ? AND ?
+    ORDER BY jk.tanggal
+");
+$stmt_jk_detail->execute([$tanggal_mulai, $tanggal_selesai]);
+while ($jk = $stmt_jk_detail->fetch()) {
+    $hari_indo = $hari_mapping[$jk['hari_en']] ?? $jk['hari_en'];
+    $kelas_key = $jk['id_kelas'] ?? 'all';
+    if (!isset($jk_detail_per_hari_excel[$hari_indo])) {
+        $jk_detail_per_hari_excel[$hari_indo] = [];
+    }
+    if (!isset($jk_detail_per_hari_excel[$hari_indo][$kelas_key])) {
+        $jk_detail_per_hari_excel[$hari_indo][$kelas_key] = [];
+    }
+    $jk_detail_per_hari_excel[$hari_indo][$kelas_key][] = [
+        'tgl' => $jk['tgl'],
+        'alasan' => $jk['alasan'],
+        'max_jam' => $jk['max_jam']
+    ];
+}
+
+function getLiburDetailExcel($hari, $id_kelas, $libur_detail) {
+    $result = [];
+    if (isset($libur_detail[$hari]['all'])) {
+        $result = array_merge($result, $libur_detail[$hari]['all']);
+    }
+    if (isset($libur_detail[$hari][$id_kelas])) {
+        $result = array_merge($result, $libur_detail[$hari][$id_kelas]);
+    }
+    return $result;
+}
+
+function getJamKhususDetailExcel($hari, $id_kelas, $jk_detail) {
+    $result = [];
+    if (isset($jk_detail[$hari]['all'])) {
+        $result = array_merge($result, $jk_detail[$hari]['all']);
+    }
+    if (isset($jk_detail[$hari][$id_kelas])) {
+        $result = array_merge($result, $jk_detail[$hari][$id_kelas]);
+    }
+    return $result;
+}
+
+// Ambil semua roster mengajar dengan info hari dan kelas
 $sql_roster = "
     SELECT g.id AS id_guru, g.nama_guru, m.id AS id_mengajar,
-           mp.nama_mapel, k.nama_kelas, m.jumlah_jam_mingguan AS jam_roster_mingguan
+           mp.nama_mapel, k.nama_kelas, m.jumlah_jam_mingguan AS jam_roster_mingguan,
+           m.hari, m.id_kelas
     FROM tbl_mengajar m
     JOIN tbl_guru g ON m.id_guru = g.id
     JOIN tbl_mapel mp ON m.id_mapel = mp.id
@@ -78,6 +187,14 @@ foreach ($semua_roster as $roster) {
     $mapel_kelas = $roster['nama_mapel'] . ' - ' . $roster['nama_kelas'];
     $jam_roster = (int)$roster['jam_roster_mingguan'];
     $jam_terlaksana = $jam_terlaksana_per_mengajar[$id_mengajar] ?? 0;
+    
+    // Hitung pengurangan libur
+    $jumlah_libur = getJumlahLiburExcel($roster['hari'], $roster['id_kelas'], $libur_per_hari_kelas);
+    $jam_seharusnya = max(0, ($jam_roster * $total_minggu_penuh) - ($jam_roster * $jumlah_libur));
+    
+    // Ambil detail libur dan jam khusus
+    $detail_libur = getLiburDetailExcel($roster['hari'], $roster['id_kelas'], $libur_detail_per_hari_excel);
+    $detail_jk = getJamKhususDetailExcel($roster['hari'], $roster['id_kelas'], $jk_detail_per_hari_excel);
 
     if (!isset($hasil_rekap[$id_guru])) {
         $hasil_rekap[$id_guru] = [
@@ -91,19 +208,18 @@ foreach ($semua_roster as $roster) {
 
     $hasil_rekap[$id_guru]['assignments'][] = [
         'mapel_kelas' => $mapel_kelas,
+        'hari' => $roster['hari'],
         'jam_roster' => $jam_roster,
-        'jam_terlaksana' => $jam_terlaksana
+        'jam_terlaksana' => $jam_terlaksana,
+        'jam_seharusnya' => $jam_seharusnya,
+        'detail_libur' => $detail_libur,
+        'detail_jk' => $detail_jk
     ];
 
     $hasil_rekap[$id_guru]['total_jam_roster'] += $jam_roster;
     $hasil_rekap[$id_guru]['total_jam_terlaksana'] += $jam_terlaksana;
+    $hasil_rekap[$id_guru]['total_jam_seharusnya'] += $jam_seharusnya;
 }
-
-// Hitung seharusnya
-foreach ($hasil_rekap as $id => &$data) {
-    $data['total_jam_seharusnya'] = $data['total_jam_roster'] * $total_minggu_penuh;
-}
-unset($data);
 
 // Tambah guru tanpa jadwal
 $semua_guru = $pdo->query("SELECT id, nama_guru FROM tbl_guru ORDER BY nama_guru ASC")->fetchAll(PDO::FETCH_ASSOC);
@@ -151,7 +267,7 @@ fputcsv($output, ['Bulan: ' . $nama_bulan_tahun]);
 fputcsv($output, []); // Baris kosong
 
 // Header
-fputcsv($output, ['No', 'Nama Guru', 'Mapel - Kelas', 'Jam Roster Per Minggu', 'Jam Roster Seharusnya', 'Jam Terlaksana', 'Selisih', 'Total Rekap Guru']);
+fputcsv($output, ['No', 'Nama Guru', 'Mapel - Kelas', 'Hari', 'Jam Roster Per Minggu', 'Jam Roster Seharusnya', 'Keterangan Libur', 'Jam Terlaksana', 'Selisih', 'Total Rekap Guru']);
 
 // Data
 $no = 1;
@@ -165,16 +281,32 @@ foreach ($hasil_rekap as $data) {
     if (count($assignments) > 0) {
         $firstRow = true;
         foreach ($assignments as $ass) {
-            $jam_seharusnya = $ass['jam_roster'] * $total_minggu_penuh;
+            $jam_seharusnya = $ass['jam_seharusnya'];
             $selisih = $ass['jam_terlaksana'] - $jam_seharusnya;
             $selisih_text = ($selisih > 0 ? '+' : '') . $selisih;
+            
+            // Format Libur/Jam Khusus
+            $libur_jk_info = [];
+            if (!empty($ass['detail_libur'])) {
+                foreach ($ass['detail_libur'] as $lib) {
+                    $libur_jk_info[] = "Libur Tgl " . $lib['tgl'] . " (" . $lib['nama'] . ")";
+                }
+            }
+            if (!empty($ass['detail_jk'])) {
+                foreach ($ass['detail_jk'] as $jk) {
+                    $libur_jk_info[] = "Jam Khusus Tgl " . $jk['tgl'] . " Max " . $jk['max_jam'] . " (" . $jk['alasan'] . ")";
+                }
+            }
+            $libur_jk_text = !empty($libur_jk_info) ? implode('; ', $libur_jk_info) : '-';
             
             fputcsv($output, [
                 $firstRow ? $no : '',
                 $firstRow ? $data['nama_guru'] : '',
                 $ass['mapel_kelas'],
+                $ass['hari'] ?? '-',
                 $ass['jam_roster'],
                 $jam_seharusnya,
+                $libur_jk_text,
                 $ass['jam_terlaksana'],
                 $selisih_text,
                 $firstRow ? $totalRekap : ''
@@ -186,6 +318,8 @@ foreach ($hasil_rekap as $data) {
             $no,
             $data['nama_guru'],
             'Tidak ada jadwal/jurnal',
+            '-',
+            '-',
             '-',
             '-',
             '-',

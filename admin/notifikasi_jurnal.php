@@ -26,9 +26,9 @@ $hari_map = [
 $nama_hari = $hari_map[$hari_ini] ?? $hari_ini;
 
 // ============================================
-// CEK HARI LIBUR
+// CEK HARI LIBUR (Umum untuk semua kelas)
 // ============================================
-$stmt_libur = $pdo->prepare("SELECT nama_libur, jenis FROM tbl_hari_libur WHERE tanggal = ?");
+$stmt_libur = $pdo->prepare("SELECT nama_libur, jenis FROM tbl_hari_libur WHERE tanggal = ? AND id_kelas IS NULL");
 $stmt_libur->execute([$tanggal_filter]);
 $hari_libur = $stmt_libur->fetch();
 

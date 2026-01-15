@@ -33,14 +33,48 @@ $start = new DateTime($tanggal_mulai);
 $end = new DateTime($tanggal_selesai);
 $minggu = max(1, floor($start->diff($end)->days / 7));
 
-// Query rekap per guru
+// Hitung jumlah hari libur per hari dalam bulan ini
+$stmt_libur = $pdo->prepare("
+    SELECT 
+        DATE_FORMAT(h.tanggal, '%W') as nama_hari_en,
+        h.id_kelas,
+        COUNT(*) as jumlah_libur
+    FROM tbl_hari_libur h
+    WHERE h.tanggal BETWEEN ? AND ?
+    GROUP BY DATE_FORMAT(h.tanggal, '%W'), h.id_kelas
+");
+$stmt_libur->execute([$tanggal_mulai, $tanggal_selesai]);
+
+$hari_mapping = [
+    'Monday' => 'Senin', 'Tuesday' => 'Selasa', 'Wednesday' => 'Rabu',
+    'Thursday' => 'Kamis', 'Friday' => 'Jumat', 'Saturday' => 'Sabtu', 'Sunday' => 'Minggu'
+];
+
+$libur_per_hari_kelas = [];
+while ($row_libur = $stmt_libur->fetch()) {
+    $hari_id = $hari_mapping[$row_libur['nama_hari_en']] ?? $row_libur['nama_hari_en'];
+    $kelas_id = $row_libur['id_kelas'] ?? 'all';
+    if (!isset($libur_per_hari_kelas[$hari_id])) {
+        $libur_per_hari_kelas[$hari_id] = [];
+    }
+    $libur_per_hari_kelas[$hari_id][$kelas_id] = $row_libur['jumlah_libur'];
+}
+
+function getJumlahLiburPDF($hari, $id_kelas, $libur_data) {
+    $libur_semua = $libur_data[$hari]['all'] ?? 0;
+    $libur_kelas = $libur_data[$hari][$id_kelas] ?? 0;
+    return $libur_semua + $libur_kelas;
+}
+
+// Query rekap per guru dengan detail jadwal untuk hitung libur
 $sql = "
     SELECT 
         g.id as id_guru,
         g.nip,
         g.nama_guru,
-        COUNT(DISTINCT m.id) as jumlah_kelas,
-        COALESCE(SUM(m.jumlah_jam_mingguan), 0) as total_roster_mingguan,
+        m.id_kelas,
+        m.hari,
+        m.jumlah_jam_mingguan,
         (
             SELECT COALESCE(SUM(
                 CASE 
@@ -51,24 +85,55 @@ $sql = "
                 END
             ), 0)
             FROM tbl_jurnal j2
-            JOIN tbl_mengajar m2 ON j2.id_mengajar = m2.id
-            WHERE m2.id_guru = g.id AND j2.tanggal BETWEEN ? AND ?
-        ) as jam_terlaksana,
+            WHERE j2.id_mengajar = m.id AND j2.tanggal BETWEEN ? AND ?
+        ) as jam_terlaksana_jadwal,
         (
             SELECT COUNT(DISTINCT j3.id)
             FROM tbl_jurnal j3
-            JOIN tbl_mengajar m3 ON j3.id_mengajar = m3.id
-            WHERE m3.id_guru = g.id AND j3.tanggal BETWEEN ? AND ?
-        ) as total_pertemuan
+            WHERE j3.id_mengajar = m.id AND j3.tanggal BETWEEN ? AND ?
+        ) as pertemuan_jadwal
     FROM tbl_guru g
     LEFT JOIN tbl_mengajar m ON g.id = m.id_guru
-    GROUP BY g.id, g.nip, g.nama_guru
+    WHERE m.id IS NOT NULL
     ORDER BY g.nama_guru ASC
 ";
 
 $stmt = $pdo->prepare($sql);
 $stmt->execute([$tanggal_mulai, $tanggal_selesai, $tanggal_mulai, $tanggal_selesai]);
-$data = $stmt->fetchAll();
+$raw_data = $stmt->fetchAll();
+
+// Proses dan kelompokkan per guru dengan perhitungan libur
+$data = [];
+foreach ($raw_data as $row) {
+    $id_guru = $row['id_guru'];
+    
+    if (!isset($data[$id_guru])) {
+        $data[$id_guru] = [
+            'id_guru' => $id_guru,
+            'nip' => $row['nip'],
+            'nama_guru' => $row['nama_guru'],
+            'jumlah_kelas' => 0,
+            'total_roster_mingguan' => 0,
+            'target_bulan' => 0,
+            'jam_terlaksana' => 0,
+            'total_pertemuan' => 0
+        ];
+    }
+    
+    // Hitung libur untuk jadwal ini
+    $jumlah_libur = getJumlahLiburPDF($row['hari'], $row['id_kelas'], $libur_per_hari_kelas);
+    $roster = (int)$row['jumlah_jam_mingguan'];
+    $target = max(0, ($roster * $minggu) - ($roster * $jumlah_libur));
+    
+    $data[$id_guru]['jumlah_kelas']++;
+    $data[$id_guru]['total_roster_mingguan'] += $roster;
+    $data[$id_guru]['target_bulan'] += $target;
+    $data[$id_guru]['jam_terlaksana'] += (int)$row['jam_terlaksana_jadwal'];
+    $data[$id_guru]['total_pertemuan'] += (int)$row['pertemuan_jadwal'];
+}
+
+// Konvert ke array indexed
+$data = array_values($data);
 
 $nama_bulan_tahun = $nama_bulan[$filter_bulan] . ' ' . $filter_tahun;
 
@@ -172,7 +237,7 @@ $total_terlaksana = 0;
 $total_pertemuan = 0;
 
 foreach ($data as $row) {
-    $target = $row['total_roster_mingguan'] * $minggu;
+    $target = $row['target_bulan']; // Sudah dihitung dengan pengurangan libur
     $selisih = $row['jam_terlaksana'] - $target;
     $persen = $target > 0 ? round(($row['jam_terlaksana'] / $target) * 100, 1) : 0;
     
@@ -220,7 +285,7 @@ foreach ($data as $row) {
     $pdf->SetTextColor(0, 0, 0);
     
     $total_roster += $row['total_roster_mingguan'];
-    $total_target += $target;
+    $total_target += $row['target_bulan']; // Gunakan target yang sudah dihitung
     $total_terlaksana += $row['jam_terlaksana'];
     $total_pertemuan += $row['total_pertemuan'];
     $no++;

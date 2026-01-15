@@ -430,14 +430,14 @@ if (isset($_POST['upload_file']) && isset($_FILES['file_excel'])) {
                         $jenis = 'sekolah'; // Default
                     }
 
-                    // Cek duplikat
-                    $check = $pdo->prepare("SELECT id FROM tbl_hari_libur WHERE tanggal = ?");
+                    // Cek duplikat (untuk libur umum: id_kelas IS NULL)
+                    $check = $pdo->prepare("SELECT id FROM tbl_hari_libur WHERE tanggal = ? AND id_kelas IS NULL");
                     $check->execute([$tanggal]);
                     $existing = $check->fetch();
 
                     if ($existing) {
                         if ($mode == 'update') {
-                            $stmt = $pdo->prepare("UPDATE tbl_hari_libur SET nama_libur = ?, jenis = ?, keterangan = ? WHERE tanggal = ?");
+                            $stmt = $pdo->prepare("UPDATE tbl_hari_libur SET nama_libur = ?, jenis = ?, keterangan = ? WHERE tanggal = ? AND id_kelas IS NULL");
                             $stmt->execute([$nama_libur, $jenis, $keterangan ?: null, $tanggal]);
                             $update++;
                         } else {
@@ -445,7 +445,8 @@ if (isset($_POST['upload_file']) && isset($_FILES['file_excel'])) {
                             $details[] = "Baris $baris_ke: Tanggal $tanggal sudah ada, di-skip";
                         }
                     } else {
-                        $stmt = $pdo->prepare("INSERT INTO tbl_hari_libur (tanggal, nama_libur, jenis, keterangan) VALUES (?, ?, ?, ?)");
+                        // Insert dengan id_kelas = NULL (berlaku untuk SEMUA kelas/jadwal guru)
+                        $stmt = $pdo->prepare("INSERT INTO tbl_hari_libur (tanggal, nama_libur, jenis, id_kelas, keterangan) VALUES (?, ?, ?, NULL, ?)");
                         $stmt->execute([$tanggal, $nama_libur, $jenis, $keterangan ?: null]);
                         $sukses++;
                     }
@@ -779,6 +780,11 @@ require_once '../includes/header.php';
                                 <i class="fas fa-file-csv"></i> Download Template Hari Libur (CSV)
                             </a>
                             
+                            <div class="alert alert-success small">
+                                <strong><i class="fas fa-globe me-1"></i> Berlaku untuk SEMUA Jadwal:</strong><br>
+                                Hari libur yang diimport akan mempengaruhi <strong>semua jadwal guru</strong> dan <strong>semua kelas</strong>.
+                            </div>
+                            
                             <div class="alert alert-info small">
                                 <strong>Format Kolom:</strong><br>
                                 A = Tanggal (wajib, format YYYY-MM-DD atau DD/MM/YYYY)<br>
@@ -837,7 +843,8 @@ require_once '../includes/header.php';
                 <li>Gunakan mode <strong>Update</strong> jika ingin memperbarui data yang sudah ada.</li>
                 <li>File harus berformat <strong>.csv</strong> atau <strong>.xlsx</strong> (Excel 2007+).</li>
                 <li>Baris pertama dianggap sebagai header dan akan dilewati.</li>
-                <li><strong>Import Hari Libur</strong>: Untuk import massal hari libur nasional, sekolah, dan cuti bersama.</li>
+                <li><strong>Import Hari Libur</strong>: Hari libur yang diimport akan <strong>berlaku untuk SEMUA jadwal guru dan kelas</strong>. Untuk libur khusus kelas tertentu, gunakan menu <a href="manage_libur.php">Kelola Libur</a>.</li>
+                <li><strong>Jam Khusus</strong>: Untuk mengatur jam khusus (pulang cepat, dll), gunakan menu <a href="manage_libur.php">Kelola Libur & Jam Khusus</a>.</li>
             </ul>
         </div>
     </div>

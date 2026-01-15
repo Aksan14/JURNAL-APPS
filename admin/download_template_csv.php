@@ -138,7 +138,11 @@ elseif ($tipe == 'libur') {
     fputcsv($output, ['2025-08-17', 'Hari Kemerdekaan RI', 'nasional', 'Upacara Bendera']);
     fputcsv($output, ['2025-07-01', 'Libur Semester', 'sekolah', 'Mulai libur kenaikan kelas']);
     fputcsv($output, ['']);
-    fputcsv($output, ['=== CATATAN ===']);
+    fputcsv($output, ['=== CATATAN PENTING ===']);
+    fputcsv($output, ['Hari libur yang diimport akan BERLAKU UNTUK SEMUA JADWAL GURU dan KELAS']);
+    fputcsv($output, ['Jika ingin libur khusus kelas tertentu, gunakan menu Kelola Libur di Admin']);
+    fputcsv($output, ['']);
+    fputcsv($output, ['=== FORMAT KOLOM ===']);
     fputcsv($output, ['TANGGAL - format: YYYY-MM-DD atau DD/MM/YYYY (wajib)']);
     fputcsv($output, ['NAMA_LIBUR - nama hari libur (wajib)']);
     fputcsv($output, ['JENIS - pilihan: nasional, sekolah, cuti_bersama (opsional, default: sekolah)']);
