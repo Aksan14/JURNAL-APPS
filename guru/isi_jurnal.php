@@ -746,7 +746,7 @@ function generateTanggalOptions(hariJadwal, idMengajar) {
     const minDate = new Date(today);
     minDate.setDate(minDate.getDate() - MAX_HARI_MUNDUR);
     
-    // Collect all valid dates (semua tanggal dalam range, tanpa filter hari)
+    // Collect valid dates (hanya tanggal yang sesuai hari jadwal)
     const validDates = [];
     const liburDates = [];
     let checkDate = new Date(today);
@@ -754,13 +754,17 @@ function generateTanggalOptions(hariJadwal, idMengajar) {
     // Loop dari hari ini ke belakang sampai batas mundur
     while (checkDate >= minDate) {
         const dateStr = formatDateToYMD(checkDate);
-        const libur = isHariLibur(dateStr, idKelas);
         
-        if (libur) {
-            // Simpan info libur untuk ditampilkan
-            liburDates.push({date: new Date(checkDate), info: libur});
-        } else {
-            validDates.push(new Date(checkDate));
+        // Filter: hanya tampilkan tanggal yang harinya sesuai jadwal
+        if (checkDate.getDay() === hariIndex) {
+            const libur = isHariLibur(dateStr, idKelas);
+            
+            if (libur) {
+                // Simpan info libur untuk ditampilkan
+                liburDates.push({date: new Date(checkDate), info: libur});
+            } else {
+                validDates.push(new Date(checkDate));
+            }
         }
         checkDate.setDate(checkDate.getDate() - 1);
     }
