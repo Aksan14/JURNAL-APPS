@@ -82,10 +82,23 @@ if (isset($_POST['upload_file']) && isset($_FILES['file_excel'])) {
                     $nis = trim($row['A'] ?? '');
                     $nama_siswa = trim($row['B'] ?? '');
                     $id_kelas = trim($row['C'] ?? '');
+                    $username = trim($row['D'] ?? '');
+                    $password = trim($row['E'] ?? '');
 
                     if (empty($nis) || empty($nama_siswa) || empty($id_kelas)) {
                         $gagal++;
                         $details[] = "Baris $baris_ke: Data tidak lengkap (NIS/Nama/Kelas kosong)";
+                        $baris_ke++;
+                        continue;
+                    }
+
+                    // Validasi: Cek apakah ID Kelas ada di database
+                    $checkKelas = $pdo->prepare("SELECT id, nama_kelas FROM tbl_kelas WHERE id = ?");
+                    $checkKelas->execute([$id_kelas]);
+                    $kelasExists = $checkKelas->fetch();
+                    if (!$kelasExists) {
+                        $gagal++;
+                        $details[] = "Baris $baris_ke: ID Kelas '$id_kelas' tidak ditemukan di database. Silakan cek referensi ID Kelas di template.";
                         $baris_ke++;
                         continue;
                     }
@@ -105,10 +118,47 @@ if (isset($_POST['upload_file']) && isset($_FILES['file_excel'])) {
                             $details[] = "Baris $baris_ke: NIS $nis sudah ada, di-skip";
                         }
                     } else {
-                        // Insert siswa baru (tanpa akun dulu)
-                        $stmt = $pdo->prepare("INSERT INTO tbl_siswa (nis, nama_siswa, id_kelas) VALUES (?, ?, ?)");
-                        $stmt->execute([$nis, $nama_siswa, $id_kelas]);
+                        // Generate username jika kosong (dari NIS)
+                        if (empty($username)) {
+                            $username = $nis; // Default username = NIS
+                            // Pastikan username unik
+                            $base_username = $username;
+                            $counter = 1;
+                            while (true) {
+                                $checkUser = $pdo->prepare("SELECT id FROM tbl_users WHERE username = ?");
+                                $checkUser->execute([$username]);
+                                if (!$checkUser->fetch()) break;
+                                $username = $base_username . $counter;
+                                $counter++;
+                            }
+                        } else {
+                            // Cek apakah username sudah ada
+                            $checkUser = $pdo->prepare("SELECT id FROM tbl_users WHERE username = ?");
+                            $checkUser->execute([$username]);
+                            if ($checkUser->fetch()) {
+                                $gagal++;
+                                $details[] = "Baris $baris_ke: Username '$username' sudah ada";
+                                $baris_ke++;
+                                continue;
+                            }
+                        }
+
+                        // Password default = username jika kosong
+                        if (empty($password)) {
+                            $password = $username;
+                        }
+                        $password_hash = password_hash($password, PASSWORD_DEFAULT);
+
+                        // 1. Insert ke tbl_users dulu
+                        $stmt1 = $pdo->prepare("INSERT INTO tbl_users (username, password_hash, role) VALUES (?, ?, 'siswa')");
+                        $stmt1->execute([$username, $password_hash]);
+                        $user_id = $pdo->lastInsertId();
+
+                        // 2. Insert siswa baru dengan user_id
+                        $stmt = $pdo->prepare("INSERT INTO tbl_siswa (user_id, nis, nama_siswa, id_kelas) VALUES (?, ?, ?, ?)");
+                        $stmt->execute([$user_id, $nis, $nama_siswa, $id_kelas]);
                         $sukses++;
+                        $details[] = "Baris $baris_ke: Siswa '$nama_siswa' berhasil ditambah dengan username '$username'";
                     }
                 
                 // ===================================

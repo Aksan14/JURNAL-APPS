@@ -39,8 +39,13 @@ $output = fopen('php://output', 'w');
 // TEMPLATE SISWA
 // ===================================
 if ($tipe == 'siswa') {
-    fputcsv($output, ['NIS', 'NAMA_SISWA', 'ID_KELAS']);
-    fputcsv($output, ['12345', 'Nama Siswa Contoh', '1']);
+    fputcsv($output, ['NIS', 'NAMA_SISWA', 'ID_KELAS', 'USERNAME', 'PASSWORD']);
+    fputcsv($output, ['12345', 'Nama Siswa Contoh', '1', 'siswa12345', 'password123']);
+    fputcsv($output, ['']);
+    fputcsv($output, ['=== CATATAN ===']);
+    fputcsv($output, ['NIS, NAMA_SISWA, dan ID_KELAS wajib diisi']);
+    fputcsv($output, ['USERNAME - jika kosong akan menggunakan NIS']);
+    fputcsv($output, ['PASSWORD - jika kosong akan sama dengan username']);
     fputcsv($output, ['']);
     fputcsv($output, ['=== REFERENSI ID KELAS ===']);
     fputcsv($output, ['ID', 'NAMA_KELAS']);
