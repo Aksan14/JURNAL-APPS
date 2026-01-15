@@ -50,11 +50,32 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['simpan_jurnal'])) {
     $catatan_guru = $_POST['catatan_guru'];
     $absensi = $_POST['absensi'] ?? [];
 
-    // Mapping hari Indonesia ke nomor hari (0=Minggu, 1=Senin, dst)
-    $hari_map_num = [
-        'Minggu' => 0, 'Senin' => 1, 'Selasa' => 2, 'Rabu' => 3,
-        'Kamis' => 4, 'Jumat' => 5, 'Sabtu' => 6
-    ];
+    // Ambil id_kelas dari id_mengajar untuk validasi libur per kelas
+    $stmt_kelas_awal = $pdo->prepare("SELECT id_kelas FROM tbl_mengajar WHERE id = ?");
+    $stmt_kelas_awal->execute([$id_mengajar]);
+    $id_kelas_jurnal = $stmt_kelas_awal->fetchColumn();
+
+    // ============================================
+    // VALIDASI HARI LIBUR (Umum atau Khusus Kelas)
+    // ============================================
+    $stmt_libur = $pdo->prepare("
+        SELECT nama_libur, jenis, id_kelas FROM tbl_hari_libur 
+        WHERE tanggal = ? AND (id_kelas IS NULL OR id_kelas = ?)
+        ORDER BY id_kelas DESC LIMIT 1
+    ");
+    $stmt_libur->execute([$tanggal, $id_kelas_jurnal]);
+    $hari_libur = $stmt_libur->fetch();
+    
+    if ($hari_libur) {
+        $jenis_libur = ucfirst(str_replace('_', ' ', $hari_libur['jenis']));
+        $keterangan_kelas = $hari_libur['id_kelas'] ? ' (Khusus kelas ini)' : '';
+        $message = "<div class='alert alert-warning alert-dismissible fade show'>
+            <strong><i class='fas fa-calendar-times me-1'></i> Tanggal Libur!</strong> 
+            Tanggal <strong>" . date('d/m/Y', strtotime($tanggal)) . "</strong> adalah <strong>{$hari_libur['nama_libur']}</strong> ({$jenis_libur}){$keterangan_kelas}.
+            <br>Anda tidak perlu mengisi jurnal pada hari libur.
+            <button type='button' class='btn-close' data-bs-dismiss='alert'></button>
+        </div>";
+    } else {
 
     // Validasi: Cek apakah tanggal tidak melebihi batas mundur
     $tanggal_input = new DateTime($tanggal);
@@ -84,27 +105,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['simpan_jurnal'])) {
     } else {
 
     try {
-        // Ambil hari jadwal dari tbl_mengajar
-        $stmt_hari = $pdo->prepare("SELECT hari FROM tbl_mengajar WHERE id = ?");
-        $stmt_hari->execute([$id_mengajar]);
-        $hari_jadwal = $stmt_hari->fetchColumn();
-        
-        // Cek apakah tanggal sesuai dengan hari jadwal
-        $hari_tanggal = date('w', strtotime($tanggal)); // 0=Minggu, 1=Senin, dst
-        $hari_jadwal_num = $hari_map_num[$hari_jadwal] ?? -1;
-        
-        if ($hari_tanggal != $hari_jadwal_num) {
-            $nama_hari_tanggal = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'][$hari_tanggal];
-            $message = "<div class='alert alert-danger alert-dismissible fade show'>
-                <strong>Gagal!</strong> Tanggal yang dipilih adalah hari <strong>{$nama_hari_tanggal}</strong>, 
-                tapi jadwal mengajar ini adalah hari <strong>{$hari_jadwal}</strong>. 
-                Silakan pilih tanggal yang sesuai dengan hari jadwal.
-                <button type='button' class='btn-close' data-bs-dismiss='alert'></button>
-            </div>";
-        } else {
-            // Cek apakah jurnal sudah pernah diisi untuk kombinasi ini
-            $stmt_check = $pdo->prepare("SELECT COUNT(*) FROM tbl_jurnal WHERE id_mengajar = ? AND tanggal = ?");
-            $stmt_check->execute([$id_mengajar, $tanggal]);
+        // Cek apakah jurnal sudah pernah diisi untuk kombinasi ini
+        $stmt_check = $pdo->prepare("SELECT COUNT(*) FROM tbl_jurnal WHERE id_mengajar = ? AND tanggal = ?");
+        $stmt_check->execute([$id_mengajar, $tanggal]);
         
         if ($stmt_check->fetchColumn() > 0) {
             $message = "<div class='alert alert-danger alert-dismissible fade show'>Gagal: Jurnal untuk kelas & mapel ini pada tanggal tersebut sudah pernah diisi. <button type='button' class='btn-close' data-bs-dismiss='alert'></button></div>";
@@ -113,6 +116,16 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['simpan_jurnal'])) {
             $stmt_kelas = $pdo->prepare("SELECT id_kelas FROM tbl_mengajar WHERE id = ?");
             $stmt_kelas->execute([$id_mengajar]);
             $id_kelas = $stmt_kelas->fetchColumn();
+
+            $stmt_jam_khusus = $pdo->prepare("
+                SELECT max_jam, alasan FROM tbl_jam_khusus 
+                WHERE tanggal = ? AND (id_kelas IS NULL OR id_kelas = ?)
+                ORDER BY id_kelas DESC LIMIT 1
+            ");
+            $stmt_jam_khusus->execute([$tanggal, $id_kelas]);
+            $jam_khusus = $stmt_jam_khusus->fetch();
+            $max_jam_hari_ini = $jam_khusus ? (int)$jam_khusus['max_jam'] : MAX_JAM_PER_HARI;
+            $alasan_jam_khusus = $jam_khusus ? $jam_khusus['alasan'] : null;
 
             // Hitung total jam yang sudah terisi untuk kelas ini pada tanggal tersebut
             $stmt_jam = $pdo->prepare("
@@ -134,11 +147,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['simpan_jurnal'])) {
             // Hitung jam yang akan diinput
             $jam_akan_diinput = hitungJumlahJam($jam_ke);
 
-            // Validasi: total jam tidak boleh melebihi batas maksimal
-            if (($total_jam_terisi + $jam_akan_diinput) > MAX_JAM_PER_HARI) {
-                $sisa_jam = MAX_JAM_PER_HARI - $total_jam_terisi;
+            // Validasi: total jam tidak boleh melebihi batas maksimal (dengan mempertimbangkan jam khusus)
+            if (($total_jam_terisi + $jam_akan_diinput) > $max_jam_hari_ini) {
+                $sisa_jam = $max_jam_hari_ini - $total_jam_terisi;
+                $info_khusus = $alasan_jam_khusus ? "<br><small class='text-info'><i class='fas fa-info-circle'></i> {$alasan_jam_khusus}: Maksimal {$max_jam_hari_ini} jam untuk tanggal ini</small>" : "";
                 $message = "<div class='alert alert-danger alert-dismissible fade show'>
-                    <strong>Gagal!</strong> Total jam pelajaran untuk kelas ini pada tanggal tersebut akan melebihi batas maksimal " . MAX_JAM_PER_HARI . " jam per hari.
+                    <strong>Gagal!</strong> Total jam pelajaran untuk kelas ini pada tanggal tersebut akan melebihi batas maksimal {$max_jam_hari_ini} jam.{$info_khusus}
                     <br>Jam terisi saat ini: <strong>{$total_jam_terisi} jam</strong>, Sisa tersedia: <strong>{$sisa_jam} jam</strong>, Akan diinput: <strong>{$jam_akan_diinput} jam</strong>
                     <button type='button' class='btn-close' data-bs-dismiss='alert'></button>
                 </div>";
@@ -161,17 +175,17 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['simpan_jurnal'])) {
                 exit;
             }
         }
-        } // End validasi tanggal sesuai hari jadwal
     } catch (PDOException $e) {
         if ($pdo->inTransaction()) $pdo->rollBack();
         $message = "<div class='alert alert-danger'>Gagal menyimpan: " . $e->getMessage() . "</div>";
     }
     } // End validasi batas mundur tanggal
+    } // End validasi hari libur
 }
 
 // Ambil data Kelas & Mapel yang diajar (termasuk hari jadwal)
 $stmt_ajar = $pdo->prepare("
-    SELECT m.id, m.hari, m.jam_ke as jam_jadwal, k.nama_kelas, mp.nama_mapel 
+    SELECT m.id, m.id_kelas, m.hari, m.jam_ke as jam_jadwal, k.nama_kelas, mp.nama_mapel 
     FROM tbl_mengajar m
     JOIN tbl_kelas k ON m.id_kelas = k.id
     JOIN tbl_mapel mp ON m.id_mapel = mp.id
@@ -212,6 +226,67 @@ $approved_dates = $stmt_approved_dates->fetchAll();
 $approved_dates_map = [];
 foreach ($approved_dates as $ad) {
     $approved_dates_map[$ad['id_mengajar']][] = $ad['tanggal_jurnal'];
+}
+
+// ============================================
+// AMBIL DATA HARI LIBUR & JAM KHUSUS UNTUK JS
+// ============================================
+// Ambil semua kelas yang diajar guru ini
+$kelas_guru_ids = array_unique(array_filter(array_column($daftar_mengajar, 'id_kelas')));
+$libur_data = [];
+$jam_khusus_data = [];
+
+// Hari libur (30 hari ke belakang s/d 7 hari ke depan) - termasuk libur umum (id_kelas IS NULL)
+if (!empty($kelas_guru_ids)) {
+    $placeholders = implode(',', array_fill(0, count($kelas_guru_ids), '?'));
+    $stmt_libur_js = $pdo->prepare("
+        SELECT tanggal, nama_libur, jenis, id_kelas FROM tbl_hari_libur 
+        WHERE tanggal >= DATE_SUB(CURDATE(), INTERVAL 30 DAY) AND tanggal <= DATE_ADD(CURDATE(), INTERVAL 7 DAY)
+        AND (id_kelas IS NULL OR id_kelas IN ($placeholders))
+    ");
+    $stmt_libur_js->execute($kelas_guru_ids);
+} else {
+    // Jika tidak ada kelas, ambil hanya libur umum
+    $stmt_libur_js = $pdo->prepare("
+        SELECT tanggal, nama_libur, jenis, id_kelas FROM tbl_hari_libur 
+        WHERE tanggal >= DATE_SUB(CURDATE(), INTERVAL 30 DAY) AND tanggal <= DATE_ADD(CURDATE(), INTERVAL 7 DAY)
+        AND id_kelas IS NULL
+    ");
+    $stmt_libur_js->execute();
+}
+while ($row = $stmt_libur_js->fetch()) {
+    $libur_data[] = [
+        'tanggal' => $row['tanggal'],
+        'nama' => $row['nama_libur'],
+        'jenis' => $row['jenis'],
+        'id_kelas' => $row['id_kelas']
+    ];
+}
+
+// Jam khusus
+if (!empty($kelas_guru_ids)) {
+    $placeholders = implode(',', array_fill(0, count($kelas_guru_ids), '?'));
+    $stmt_jam_js = $pdo->prepare("
+        SELECT tanggal, max_jam, alasan, id_kelas FROM tbl_jam_khusus 
+        WHERE tanggal >= DATE_SUB(CURDATE(), INTERVAL 30 DAY) AND tanggal <= DATE_ADD(CURDATE(), INTERVAL 7 DAY)
+        AND (id_kelas IS NULL OR id_kelas IN ($placeholders))
+    ");
+    $stmt_jam_js->execute($kelas_guru_ids);
+} else {
+    $stmt_jam_js = $pdo->prepare("
+        SELECT tanggal, max_jam, alasan, id_kelas FROM tbl_jam_khusus 
+        WHERE tanggal >= DATE_SUB(CURDATE(), INTERVAL 30 DAY) AND tanggal <= DATE_ADD(CURDATE(), INTERVAL 7 DAY)
+        AND id_kelas IS NULL
+    ");
+    $stmt_jam_js->execute();
+}
+while ($row = $stmt_jam_js->fetch()) {
+    $jam_khusus_data[] = [
+        'tanggal' => $row['tanggal'],
+        'max_jam' => (int)$row['max_jam'],
+        'alasan' => $row['alasan'],
+        'id_kelas' => $row['id_kelas']
+    ];
 }
 
 // Generate tanggal mundur untuk setiap hari jadwal (untuk modal request)
@@ -462,10 +537,9 @@ require_once '../includes/header.php';
                             </div>
 
                             <!-- Info Hari Jadwal -->
-                            <div id="info-hari-jadwal" class="alert alert-warning mb-3" style="display: none;">
+                            <div id="info-hari-jadwal" class="alert alert-primary mb-3" style="display: none;">
                                 <i class="fas fa-calendar-day me-1"></i>
                                 <strong>Jadwal: Hari <span id="nama-hari-jadwal"></span></strong>
-                                <br><small>Tanggal harus sesuai dengan hari jadwal mengajar.</small>
                             </div>
 
                             <!-- Info Jam Kelas (Realtime) -->
@@ -561,6 +635,15 @@ const approvedDates = <?= json_encode($approved_dates_map) ?>;
 // Data tanggal mundur per hari dari PHP (untuk modal request)
 const tanggalMundurPerHari = <?= json_encode($tanggal_mundur_per_hari) ?>;
 
+// Data hari libur dari PHP
+const dataHariLibur = <?= json_encode($libur_data) ?>;
+
+// Data jam khusus dari PHP
+const dataJamKhusus = <?= json_encode($jam_khusus_data) ?>;
+
+// Mapping id_mengajar ke id_kelas
+const mengajarToKelas = <?= json_encode(array_column($daftar_mengajar, 'id_kelas', 'id')) ?>;
+
 // Mapping hari ke index (0=Minggu, 1=Senin, dst)
 const hariToIndex = {
     'Minggu': 0, 'Senin': 1, 'Selasa': 2, 'Rabu': 3,
@@ -574,6 +657,31 @@ const namaBulan = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
 // Variable global untuk menyimpan hari jadwal saat ini
 let currentHariJadwal = '';
 let currentIdMengajar = '';
+
+// Fungsi untuk cek apakah tanggal adalah hari libur
+function isHariLibur(dateStr, idKelas) {
+    for (const libur of dataHariLibur) {
+        if (libur.tanggal === dateStr) {
+            // Libur umum (id_kelas = null/undefined) atau libur khusus kelas ini
+            if (libur.id_kelas === null || libur.id_kelas === undefined || String(libur.id_kelas) === String(idKelas)) {
+                return libur;
+            }
+        }
+    }
+    return null;
+}
+
+// Fungsi untuk cek jam khusus
+function getJamKhusus(dateStr, idKelas) {
+    for (const jk of dataJamKhusus) {
+        if (jk.tanggal === dateStr) {
+            if (jk.id_kelas === null || jk.id_kelas == idKelas) {
+                return jk;
+            }
+        }
+    }
+    return null;
+}
 
 // Fungsi untuk populate dropdown tanggal request mundur (HARUS DIDEFINISIKAN LEBIH AWAL)
 function populateTanggalRequestDropdown(hariJadwal) {
@@ -610,6 +718,14 @@ function populateTanggalRequestDropdown(hariJadwal) {
     console.log('Dropdown populated with', tanggalList.length, 'options');
 }
 
+// Helper function untuk format date ke YYYY-MM-DD (local timezone)
+function formatDateToYMD(date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
 // Fungsi untuk generate tanggal berdasarkan hari jadwal
 function generateTanggalOptions(hariJadwal, idMengajar) {
     const selectTanggal = document.getElementById('tanggal');
@@ -617,6 +733,9 @@ function generateTanggalOptions(hariJadwal, idMengajar) {
     const hariIndex = hariToIndex[hariJadwal];
     currentHariJadwal = hariJadwal;
     currentIdMengajar = idMengajar;
+    
+    // Get id_kelas dari idMengajar
+    const idKelas = mengajarToKelas[idMengajar];
     
     // Clear existing options
     selectTanggal.innerHTML = '';
@@ -627,13 +746,20 @@ function generateTanggalOptions(hariJadwal, idMengajar) {
     const minDate = new Date(today);
     minDate.setDate(minDate.getDate() - MAX_HARI_MUNDUR);
     
-    // Collect all valid dates
+    // Collect all valid dates (semua tanggal dalam range, tanpa filter hari)
     const validDates = [];
+    const liburDates = [];
     let checkDate = new Date(today);
     
     // Loop dari hari ini ke belakang sampai batas mundur
     while (checkDate >= minDate) {
-        if (checkDate.getDay() === hariIndex) {
+        const dateStr = formatDateToYMD(checkDate);
+        const libur = isHariLibur(dateStr, idKelas);
+        
+        if (libur) {
+            // Simpan info libur untuk ditampilkan
+            liburDates.push({date: new Date(checkDate), info: libur});
+        } else {
             validDates.push(new Date(checkDate));
         }
         checkDate.setDate(checkDate.getDate() - 1);
@@ -642,23 +768,63 @@ function generateTanggalOptions(hariJadwal, idMengajar) {
     // Add options (sudah terurut dari terbaru)
     selectTanggal.innerHTML = '<option value="">-- Pilih Tanggal --</option>';
     
+    // Jika tidak ada tanggal valid sama sekali (semua libur)
+    if (validDates.length === 0 && liburDates.length > 0) {
+        const warnOption = document.createElement('option');
+        warnOption.value = '';
+        warnOption.textContent = '⚠️ Semua tanggal dalam range adalah hari libur';
+        warnOption.disabled = true;
+        warnOption.style.color = '#dc3545';
+        selectTanggal.appendChild(warnOption);
+    }
+    
+    let firstValidSelected = false;
     if (validDates.length > 0) {
         validDates.forEach((date, index) => {
-            const dateStr = date.toISOString().split('T')[0];
+            const dateStr = formatDateToYMD(date);
             const dayName = namaHari[date.getDay()];
             const displayDate = date.getDate() + ' ' + namaBulan[date.getMonth()] + ' ' + date.getFullYear();
+            
+            // Cek jam khusus
+            const jamKhusus = getJamKhusus(dateStr, idKelas);
             
             const option = document.createElement('option');
             option.value = dateStr;
             option.textContent = dayName + ', ' + displayDate;
+            if (jamKhusus) {
+                option.textContent += ' ⚠️ ' + jamKhusus.alasan + ' (Maks ' + jamKhusus.max_jam + ' Jam)';
+                option.style.color = '#856404';
+            }
             
-            // Set tanggal hari ini sebagai default jika cocok
-            if (index === 0) {
+            // Set tanggal pertama yang valid sebagai default
+            if (!firstValidSelected) {
                 option.selected = true;
+                firstValidSelected = true;
             }
             
             selectTanggal.appendChild(option);
         });
+    }
+    
+    // Tambahkan info hari libur (disabled)
+    if (liburDates.length > 0) {
+        const liburGroup = document.createElement('optgroup');
+        liburGroup.label = '🔴 Hari Libur (Tidak Tersedia)';
+        
+        liburDates.forEach(item => {
+            const date = item.date;
+            const dayName = namaHari[date.getDay()];
+            const displayDate = date.getDate() + ' ' + namaBulan[date.getMonth()] + ' ' + date.getFullYear();
+            
+            const option = document.createElement('option');
+            option.value = '';
+            option.textContent = '🔴 ' + dayName + ', ' + displayDate + ' - ' + item.info.nama;
+            option.disabled = true;
+            option.style.color = '#dc3545';
+            liburGroup.appendChild(option);
+        });
+        
+        selectTanggal.appendChild(liburGroup);
     }
     
     // Cek apakah ada tanggal yang sudah di-approve untuk id_mengajar ini
@@ -693,13 +859,19 @@ function generateTanggalOptions(hariJadwal, idMengajar) {
     selectTanggal.disabled = false;
     
     let infoText = '<i class="fas fa-check-circle text-success"></i> ' + validDates.length + ' tanggal tersedia';
+    if (liburDates.length > 0) {
+        infoText += ' <span class="text-danger">(' + liburDates.length + ' hari libur)</span>';
+    }
     if (approvedDates[idMengajar] && approvedDates[idMengajar].length > 0) {
         infoText += ' + <span class="text-success">' + approvedDates[idMengajar].length + ' tanggal disetujui</span>';
     }
     tanggalInfo.innerHTML = infoText;
     
-    // Trigger change untuk cek jurnal yang sudah diisi
-    selectTanggal.dispatchEvent(new Event('change'));
+    // Trigger validasi dan cek jam kelas setelah tanggal di-generate
+    setTimeout(() => {
+        validasiTanggalHari();
+        cekJamKelas();
+    }, 100);
 }
 
 // Update dropdown tanggal berdasarkan pilihan kelas/mapel
@@ -747,6 +919,9 @@ document.getElementById('tanggal').addEventListener('change', function() {
     }
     
     if (!tanggal) return;
+    
+    // Panggil cekJamKelas SETELAH tanggal dipilih
+    cekJamKelas();
     
     // Ambil data jurnal yang sudah diisi pada tanggal tersebut
     fetch(`ajax_get_jurnal_by_date.php?tanggal=${tanggal}`)
@@ -853,6 +1028,7 @@ function cekJamKelas() {
     const jamKe = document.getElementById('jam_ke').value;
     const infoContainer = document.getElementById('info-jam-kelas');
     const submitBtn = document.querySelector('button[name="simpan_jurnal"]');
+    const formInputs = document.querySelectorAll('#formIsiJurnal input:not([type="hidden"]), #formIsiJurnal textarea, #formIsiJurnal select');
     
     if (!idMengajar || !tanggal) {
         infoContainer.style.display = 'none';
@@ -869,10 +1045,86 @@ function cekJamKelas() {
             
             infoContainer.style.display = 'block';
             
-            const persen = Math.min(100, (data.total_jam_terisi / data.max_jam) * 100);
             const progressBar = document.getElementById('jam-progress-bar');
             const statusBadge = document.getElementById('jam-status-badge');
             const warningDiv = document.getElementById('jam-warning');
+            
+            // ============================================
+            // CEK JIKA HARI LIBUR - DISABLE SEMUA FORM
+            // ============================================
+            if (data.is_libur) {
+                document.getElementById('jam-terisi').textContent = '-';
+                document.getElementById('jam-max').textContent = '-';
+                document.getElementById('jam-sisa').textContent = '-';
+                
+                progressBar.style.width = '100%';
+                progressBar.className = 'progress-bar bg-danger';
+                statusBadge.className = 'badge bg-danger';
+                statusBadge.innerHTML = '<i class="fas fa-calendar-times me-1"></i> HARI LIBUR';
+                infoContainer.className = 'alert alert-danger mb-3';
+                
+                warningDiv.style.display = 'block';
+                warningDiv.innerHTML = `<i class="fas fa-ban me-1"></i> <strong>TIDAK DAPAT MENGISI JURNAL!</strong><br>
+                    Tanggal <strong>${formatTanggalIndo(data.tanggal)}</strong> adalah <strong>${data.nama_libur}</strong> (${data.jenis_libur})${data.keterangan_kelas}.<br>
+                    <small class="text-muted">Silakan pilih tanggal lain yang bukan hari libur.</small>`;
+                
+                // Disable submit button
+                submitBtn.disabled = true;
+                submitBtn.classList.add('btn-secondary');
+                submitBtn.classList.remove('btn-primary');
+                submitBtn.innerHTML = '<i class="fas fa-ban me-1"></i> Tidak Dapat Menyimpan (Hari Libur)';
+                
+                // Disable form inputs kecuali dropdown kelas dan tanggal
+                document.getElementById('topik_materi').disabled = true;
+                document.getElementById('catatan_guru').disabled = true;
+                document.querySelectorAll('input[name^="absensi"]').forEach(el => el.disabled = true);
+                
+                return;
+            }
+            
+            // ============================================
+            // CEK JIKA JAM SUDAH PENUH (Pulang Cepat)
+            // ============================================
+            if (data.is_jam_penuh) {
+                document.getElementById('jam-terisi').textContent = data.total_jam_terisi;
+                document.getElementById('jam-max').textContent = data.max_jam;
+                document.getElementById('jam-sisa').textContent = 0;
+                
+                progressBar.style.width = '100%';
+                progressBar.className = 'progress-bar bg-danger';
+                statusBadge.className = 'badge bg-danger';
+                statusBadge.innerHTML = '<i class="fas fa-clock me-1"></i> JAM PENUH';
+                infoContainer.className = 'alert alert-danger mb-3';
+                
+                const infoJamKhusus = data.jam_khusus ? `<br><small class="text-warning"><i class="fas fa-info-circle"></i> ${data.jam_khusus}: Maksimal ${data.max_jam} jam pada tanggal ini</small>` : '';
+                warningDiv.style.display = 'block';
+                warningDiv.innerHTML = `<i class="fas fa-ban me-1"></i> <strong>TIDAK DAPAT MENGISI JURNAL!</strong><br>
+                    Jam pelajaran untuk kelas ini pada tanggal tersebut sudah penuh (${data.total_jam_terisi}/${data.max_jam} jam).${infoJamKhusus}<br>
+                    <small class="text-muted">Silakan pilih tanggal lain.</small>`;
+                
+                // Disable submit button
+                submitBtn.disabled = true;
+                submitBtn.classList.add('btn-secondary');
+                submitBtn.classList.remove('btn-primary');
+                submitBtn.innerHTML = '<i class="fas fa-ban me-1"></i> Tidak Dapat Menyimpan (Jam Penuh)';
+                
+                // Disable form inputs kecuali dropdown kelas dan tanggal
+                document.getElementById('topik_materi').disabled = true;
+                document.getElementById('catatan_guru').disabled = true;
+                document.querySelectorAll('input[name^="absensi"]').forEach(el => el.disabled = true);
+                
+                return;
+            }
+            
+            // ============================================
+            // NORMAL - Enable form
+            // ============================================
+            // Enable form inputs
+            document.getElementById('topik_materi').disabled = false;
+            document.getElementById('catatan_guru').disabled = false;
+            document.querySelectorAll('input[name^="absensi"]').forEach(el => el.disabled = false);
+            
+            const persen = Math.min(100, (data.total_jam_terisi / data.max_jam) * 100);
             
             document.getElementById('jam-terisi').textContent = data.total_jam_terisi;
             document.getElementById('jam-max').textContent = data.max_jam;
@@ -891,6 +1143,11 @@ function cekJamKelas() {
                 statusBadge.className = 'badge bg-warning text-dark';
                 statusBadge.textContent = 'Hampir Penuh';
                 infoContainer.className = 'alert alert-warning mb-3';
+            } else if (data.jam_khusus) {
+                progressBar.className = 'progress-bar bg-warning';
+                statusBadge.className = 'badge bg-warning text-dark';
+                statusBadge.textContent = data.jam_khusus;
+                infoContainer.className = 'alert alert-warning mb-3';
             } else {
                 progressBar.className = 'progress-bar bg-success';
                 statusBadge.className = 'badge bg-success';
@@ -905,16 +1162,26 @@ function cekJamKelas() {
                 submitBtn.disabled = true;
                 submitBtn.classList.add('btn-secondary');
                 submitBtn.classList.remove('btn-primary');
+                submitBtn.innerHTML = '<i class="fas fa-save me-1"></i> Simpan Jurnal & Absensi';
             } else {
                 warningDiv.style.display = 'none';
                 submitBtn.disabled = false;
                 submitBtn.classList.remove('btn-secondary');
                 submitBtn.classList.add('btn-primary');
+                submitBtn.innerHTML = '<i class="fas fa-save me-1"></i> Simpan Jurnal & Absensi';
             }
         })
         .catch(error => {
             console.error('Error:', error);
         });
+}
+
+// Helper function untuk format tanggal
+function formatTanggalIndo(dateStr) {
+    const date = new Date(dateStr);
+    const hari = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+    const bulan = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+    return hari[date.getDay()] + ', ' + date.getDate() + ' ' + bulan[date.getMonth()] + ' ' + date.getFullYear();
 }
 
 // Mapping hari Indonesia ke hari JS (0=Minggu, 1=Senin, dst)
@@ -935,6 +1202,12 @@ function validasiTanggalHari() {
     const infoHari = document.getElementById('info-hari-jadwal');
     const namaHariSpan = document.getElementById('nama-hari-jadwal');
     const submitBtn = document.querySelector('button[name="simpan_jurnal"]');
+    
+    // Reset form inputs ke enabled state terlebih dahulu
+    document.getElementById('topik_materi').disabled = false;
+    document.getElementById('catatan_guru').disabled = false;
+    document.querySelectorAll('input[name^="absensi"]').forEach(el => el.disabled = false);
+    submitBtn.innerHTML = '<i class="fas fa-save me-1"></i> Simpan Jurnal & Absensi';
     
     const selectedOption = selectMengajar.options[selectMengajar.selectedIndex];
     
