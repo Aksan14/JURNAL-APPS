@@ -48,6 +48,12 @@ global $current_page;
             <i class="fas fa-calendar-alt"></i><span>Jadwal Mengajar</span>
         </a>
     </li>
+    <li class="nav-item">
+        <a class="nav-link <?php echo ($current_page == 'manage_libur.php') ? 'active' : ''; ?>"
+           href="<?php echo BASE_URL; ?>/admin/manage_libur.php" title="Hari Libur">
+            <i class="fas fa-calendar-times"></i><span>Hari Libur</span>
+        </a>
+    </li>
 
     <li class="nav-item-header">Alat & Laporan</li>
     <?php
@@ -58,15 +64,23 @@ global $current_page;
     ];
     $nama_hari_ini = $hari_map_sidebar[date('l')] ?? '';
     
-    $stmt_notif = $pdo->prepare("
-        SELECT COUNT(*) FROM tbl_mengajar m
-        WHERE m.hari = ?
-        AND m.id NOT IN (
-            SELECT id_mengajar FROM tbl_jurnal WHERE tanggal = CURDATE()
-        )
-    ");
-    $stmt_notif->execute([$nama_hari_ini]);
-    $jumlah_belum_isi = $stmt_notif->fetchColumn();
+    // Cek apakah hari ini adalah hari libur
+    $stmt_cek_libur = $pdo->prepare("SELECT COUNT(*) FROM tbl_hari_libur WHERE tanggal = CURDATE()");
+    $stmt_cek_libur->execute();
+    $is_libur_hari_ini = $stmt_cek_libur->fetchColumn() > 0;
+    
+    $jumlah_belum_isi = 0;
+    if (!$is_libur_hari_ini && $nama_hari_ini != 'Minggu') {
+        $stmt_notif = $pdo->prepare("
+            SELECT COUNT(*) FROM tbl_mengajar m
+            WHERE m.hari = ?
+            AND m.id NOT IN (
+                SELECT id_mengajar FROM tbl_jurnal WHERE tanggal = CURDATE()
+            )
+        ");
+        $stmt_notif->execute([$nama_hari_ini]);
+        $jumlah_belum_isi = $stmt_notif->fetchColumn();
+    }
     
     // Hitung permintaan jurnal mundur pending
     $stmt_request_pending = $pdo->query("SELECT COUNT(*) FROM tbl_request_jurnal_mundur WHERE status = 'pending'");

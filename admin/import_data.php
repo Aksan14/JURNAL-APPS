@@ -288,6 +288,18 @@ if (isset($_POST['upload_file']) && isset($_FILES['file_excel'])) {
                         continue;
                     }
 
+                    // Validasi: Cek apakah ID Wali Kelas (guru) ada di database
+                    if ($id_wali_kelas !== NULL) {
+                        $checkGuru = $pdo->prepare("SELECT id FROM tbl_guru WHERE id = ?");
+                        $checkGuru->execute([$id_wali_kelas]);
+                        if (!$checkGuru->fetch()) {
+                            $gagal++;
+                            $details[] = "Baris $baris_ke: ID Wali Kelas '$id_wali_kelas' tidak ditemukan di database";
+                            $baris_ke++;
+                            continue;
+                        }
+                    }
+
                     // Cek duplikat
                     $check = $pdo->prepare("SELECT id FROM tbl_kelas WHERE nama_kelas = ?");
                     $check->execute([$nama_kelas]);
@@ -334,6 +346,36 @@ if (isset($_POST['upload_file']) && isset($_FILES['file_excel'])) {
                         continue;
                     }
 
+                    // Validasi: Cek apakah ID Guru ada di database
+                    $checkGuru = $pdo->prepare("SELECT id, nama_guru FROM tbl_guru WHERE id = ?");
+                    $checkGuru->execute([$id_guru]);
+                    if (!$checkGuru->fetch()) {
+                        $gagal++;
+                        $details[] = "Baris $baris_ke: ID Guru '$id_guru' tidak ditemukan di database";
+                        $baris_ke++;
+                        continue;
+                    }
+
+                    // Validasi: Cek apakah ID Mapel ada di database
+                    $checkMapel = $pdo->prepare("SELECT id FROM tbl_mapel WHERE id = ?");
+                    $checkMapel->execute([$id_mapel]);
+                    if (!$checkMapel->fetch()) {
+                        $gagal++;
+                        $details[] = "Baris $baris_ke: ID Mapel '$id_mapel' tidak ditemukan di database";
+                        $baris_ke++;
+                        continue;
+                    }
+
+                    // Validasi: Cek apakah ID Kelas ada di database
+                    $checkKelas = $pdo->prepare("SELECT id FROM tbl_kelas WHERE id = ?");
+                    $checkKelas->execute([$id_kelas]);
+                    if (!$checkKelas->fetch()) {
+                        $gagal++;
+                        $details[] = "Baris $baris_ke: ID Kelas '$id_kelas' tidak ditemukan di database";
+                        $baris_ke++;
+                        continue;
+                    }
+
                     // Cek duplikat berdasarkan unique key uk_jadwal (id_kelas, hari, jam_ke)
                     $check = $pdo->prepare("SELECT id FROM tbl_mengajar WHERE id_kelas = ? AND hari = ? AND jam_ke = ?");
                     $check->execute([$id_kelas, $hari, $jam_ke]);
@@ -350,6 +392,61 @@ if (isset($_POST['upload_file']) && isset($_FILES['file_excel'])) {
                     } else {
                         $stmt = $pdo->prepare("INSERT INTO tbl_mengajar (id_guru, id_mapel, id_kelas, hari, jam_ke, jumlah_jam_mingguan) VALUES (?, ?, ?, ?, ?, ?)");
                         $stmt->execute([$id_guru, $id_mapel, $id_kelas, $hari, $jam_ke, $jumlah_jam]);
+                        $sukses++;
+                    }
+
+                // ===================================
+                // PROSES IMPORT HARI LIBUR
+                // ===================================
+                } elseif ($import_type == 'libur') {
+                    $tanggal = trim($row['A'] ?? '');
+                    $nama_libur = trim($row['B'] ?? '');
+                    $jenis = strtolower(trim($row['C'] ?? 'sekolah'));
+                    $keterangan = trim($row['D'] ?? '');
+
+                    if (empty($tanggal) || empty($nama_libur)) {
+                        $gagal++;
+                        $details[] = "Baris $baris_ke: Tanggal atau nama libur kosong";
+                        $baris_ke++;
+                        continue;
+                    }
+
+                    // Validasi format tanggal
+                    $date = DateTime::createFromFormat('Y-m-d', $tanggal);
+                    if (!$date) {
+                        $date = DateTime::createFromFormat('d/m/Y', $tanggal);
+                    }
+                    if (!$date) {
+                        $gagal++;
+                        $details[] = "Baris $baris_ke: Format tanggal '$tanggal' tidak valid (gunakan YYYY-MM-DD atau DD/MM/YYYY)";
+                        $baris_ke++;
+                        continue;
+                    }
+                    $tanggal = $date->format('Y-m-d');
+
+                    // Validasi jenis
+                    $jenis_valid = ['nasional', 'sekolah', 'cuti_bersama'];
+                    if (!in_array($jenis, $jenis_valid)) {
+                        $jenis = 'sekolah'; // Default
+                    }
+
+                    // Cek duplikat
+                    $check = $pdo->prepare("SELECT id FROM tbl_hari_libur WHERE tanggal = ?");
+                    $check->execute([$tanggal]);
+                    $existing = $check->fetch();
+
+                    if ($existing) {
+                        if ($mode == 'update') {
+                            $stmt = $pdo->prepare("UPDATE tbl_hari_libur SET nama_libur = ?, jenis = ?, keterangan = ? WHERE tanggal = ?");
+                            $stmt->execute([$nama_libur, $jenis, $keterangan ?: null, $tanggal]);
+                            $update++;
+                        } else {
+                            $skip++;
+                            $details[] = "Baris $baris_ke: Tanggal $tanggal sudah ada, di-skip";
+                        }
+                    } else {
+                        $stmt = $pdo->prepare("INSERT INTO tbl_hari_libur (tanggal, nama_libur, jenis, keterangan) VALUES (?, ?, ?, ?)");
+                        $stmt->execute([$tanggal, $nama_libur, $jenis, $keterangan ?: null]);
                         $sukses++;
                     }
                 }
@@ -421,6 +518,9 @@ require_once '../includes/header.php';
         </li>
         <li class="nav-item" role="presentation">
             <button class="nav-link" id="mengajar-tab" data-bs-toggle="tab" data-bs-target="#mengajar" type="button">Import Plotting</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="libur-tab" data-bs-toggle="tab" data-bs-target="#libur" type="button">Import Hari Libur</button>
         </li>
     </ul>
 
@@ -667,6 +767,62 @@ require_once '../includes/header.php';
             </div>
         </div>
 
+        <!-- TAB HARI LIBUR -->
+        <div class="tab-pane fade" id="libur" role="tabpanel">
+            <div class="card shadow border-top-0 rounded-0 rounded-bottom">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h5><i class="fas fa-download text-success"></i> Langkah 1: Download Template</h5>
+                            <p class="text-muted small">Download template, isi data hari libur sesuai format.</p>
+                            <a href="download_template_csv.php?tipe=libur" class="btn btn-success btn-sm mb-3">
+                                <i class="fas fa-file-csv"></i> Download Template Hari Libur (CSV)
+                            </a>
+                            
+                            <div class="alert alert-info small">
+                                <strong>Format Kolom:</strong><br>
+                                A = Tanggal (wajib, format YYYY-MM-DD atau DD/MM/YYYY)<br>
+                                B = Nama Libur (wajib)<br>
+                                C = Jenis (opsional: nasional/sekolah/cuti_bersama, default: sekolah)<br>
+                                D = Keterangan (opsional)
+                            </div>
+                            
+                            <div class="alert alert-warning small">
+                                <strong>Contoh Data:</strong><br>
+                                2025-01-01, Tahun Baru 2025, nasional, -<br>
+                                2025-08-17, Hari Kemerdekaan RI, nasional, Upacara bendera<br>
+                                2025-07-01, Libur Semester, sekolah, Mulai libur kenaikan
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <h5><i class="fas fa-upload text-primary"></i> Langkah 2: Upload File</h5>
+                            <form action="import_data.php" method="POST" enctype="multipart/form-data">
+                                <input type="hidden" name="import_type" value="libur">
+                                <div class="mb-3">
+                                    <label class="form-label">Pilih File (.csv, .xlsx, .xls)</label>
+                                    <input class="form-control" type="file" name="file_excel" accept=".csv,.xlsx,.xls" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Jika Tanggal sudah ada:</label>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="mode" value="skip" id="libur_skip" checked>
+                                        <label class="form-check-label" for="libur_skip">Skip (lewati)</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="mode" value="update" id="libur_update">
+                                        <label class="form-check-label" for="libur_update">Update (timpa data)</label>
+                                    </div>
+                                </div>
+                                <button type="submit" name="upload_file" class="btn btn-primary">
+                                    <i class="fas fa-upload"></i> Import Hari Libur
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
     </div>
 
     <!-- Info Catatan -->
@@ -677,10 +833,11 @@ require_once '../includes/header.php';
         <div class="card-body">
             <ul class="mb-0">
                 <li>Pastikan data referensi (Guru, Kelas, Mapel) sudah diimport terlebih dahulu sebelum import Siswa atau Plotting.</li>
-                <li>Import <strong>Siswa</strong> dan <strong>Guru</strong> tidak langsung membuat akun login. Buat akun melalui menu Kelola Guru/Siswa.</li>
+                <li>Import <strong>Siswa</strong> dan <strong>Guru</strong> akan otomatis membuat akun login. Password default = Username.</li>
                 <li>Gunakan mode <strong>Update</strong> jika ingin memperbarui data yang sudah ada.</li>
-                <li>File harus berformat <strong>.xlsx</strong> (Excel 2007+).</li>
+                <li>File harus berformat <strong>.csv</strong> atau <strong>.xlsx</strong> (Excel 2007+).</li>
                 <li>Baris pertama dianggap sebagai header dan akan dilewati.</li>
+                <li><strong>Import Hari Libur</strong>: Untuk import massal hari libur nasional, sekolah, dan cuti bersama.</li>
             </ul>
         </div>
     </div>

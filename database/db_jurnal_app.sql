@@ -38,7 +38,9 @@ CREATE TABLE tbl_users (
 -- =====================================================
 CREATE TABLE tbl_mapel (
     id INT AUTO_INCREMENT PRIMARY KEY,
+    kode_mapel VARCHAR(20) DEFAULT NULL,
     nama_mapel VARCHAR(100) NOT NULL,
+    INDEX idx_kode_mapel (kode_mapel),
     INDEX idx_nama_mapel (nama_mapel)
 ) ENGINE=InnoDB;
 
@@ -176,6 +178,42 @@ CREATE TABLE tbl_request_jurnal_mundur (
     INDEX idx_status (status),
     INDEX idx_tanggal (tanggal_jurnal),
     INDEX idx_approved_by (approved_by)
+) ENGINE=InnoDB;
+
+-- =====================================================
+-- TABEL: tbl_hari_libur
+-- Menyimpan data hari libur nasional dan sekolah
+-- =====================================================
+CREATE TABLE tbl_hari_libur (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    tanggal DATE NOT NULL,
+    nama_libur VARCHAR(100) NOT NULL,
+    jenis ENUM('nasional', 'sekolah', 'cuti_bersama') NOT NULL DEFAULT 'sekolah',
+    id_kelas INT DEFAULT NULL COMMENT 'NULL = berlaku semua kelas',
+    keterangan TEXT DEFAULT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (id_kelas) REFERENCES tbl_kelas(id) ON DELETE CASCADE,
+    UNIQUE KEY uk_tanggal_kelas (tanggal, id_kelas),
+    INDEX idx_tanggal (tanggal),
+    INDEX idx_jenis (jenis),
+    INDEX idx_kelas (id_kelas)
+) ENGINE=InnoDB;
+
+-- =====================================================
+-- TABEL: tbl_jam_khusus
+-- Menyimpan pengurangan jam (pulang cepat, dll)
+-- =====================================================
+CREATE TABLE tbl_jam_khusus (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    tanggal DATE NOT NULL,
+    max_jam INT NOT NULL DEFAULT 10 COMMENT 'Maksimal jam pelajaran hari itu',
+    alasan VARCHAR(200) NOT NULL COMMENT 'Contoh: Pulang cepat, Ujian, dll',
+    id_kelas INT DEFAULT NULL COMMENT 'NULL = berlaku semua kelas',
+    keterangan TEXT DEFAULT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (id_kelas) REFERENCES tbl_kelas(id) ON DELETE CASCADE,
+    INDEX idx_tanggal (tanggal),
+    INDEX idx_kelas (id_kelas)
 ) ENGINE=InnoDB;
 
 -- =====================================================

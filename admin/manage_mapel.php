@@ -12,10 +12,11 @@ $message = '';
 
 // --- 1. LOGIKA TAMBAH MAPEL ---
 if (isset($_POST['add_mapel'])) {
+    $kode_mapel = trim($_POST['kode_mapel'] ?? '');
     $nama_mapel = trim($_POST['nama_mapel']);
     if (!empty($nama_mapel)) {
-        $stmt = $pdo->prepare("INSERT INTO tbl_mapel (nama_mapel) VALUES (?)");
-        $stmt->execute([$nama_mapel]);
+        $stmt = $pdo->prepare("INSERT INTO tbl_mapel (kode_mapel, nama_mapel) VALUES (?, ?)");
+        $stmt->execute([$kode_mapel ?: null, $nama_mapel]);
         header("Location: manage_mapel.php?status=added");
         exit;
     }
@@ -70,6 +71,7 @@ require_once '../includes/header.php';
                     <thead class="table-light">
                         <tr>
                             <th width="50">No</th>
+                            <th width="120">Kode Mapel</th>
                             <th>Nama Mata Pelajaran</th>
                             <th width="150">Aksi</th>
                         </tr>
@@ -79,6 +81,7 @@ require_once '../includes/header.php';
                             <?php foreach ($daftar_mapel as $index => $row): ?>
                             <tr>
                                 <td><?php echo $index + 1; ?></td>
+                                <td><?php echo htmlspecialchars($row['kode_mapel'] ?? '-'); ?></td>
                                 <td><?php echo htmlspecialchars($row['nama_mapel']); ?></td>
                                 <td>
                                     <a href="edit_mapel.php?id=<?php echo $row['id']; ?>" class="btn btn-sm btn-info text-white">
@@ -94,7 +97,7 @@ require_once '../includes/header.php';
                             <?php endforeach; ?>
                         <?php else: ?>
                             <tr>
-                                <td colspan="3" class="text-center">Belum ada data.</td>
+                                <td colspan="4" class="text-center">Belum ada data.</td>
                             </tr>
                         <?php endif; ?>
                     </tbody>
@@ -114,8 +117,13 @@ require_once '../includes/header.php';
             </div>
             <div class="modal-body">
                 <div class="mb-3">
+                    <label class="form-label">Kode Mata Pelajaran</label>
+                    <input type="text" name="kode_mapel" class="form-control" placeholder="Contoh: MTK, IPA, BIG (opsional)">
+                    <small class="text-muted">Kode singkat untuk identifikasi mapel (boleh kosong)</small>
+                </div>
+                <div class="mb-3">
                     <label class="form-label">Nama Mata Pelajaran</label>
-                    <input type="text" name="nama_mapel" class="form-control" placeholder="Contoh: Fisika" required>
+                    <input type="text" name="nama_mapel" class="form-control" placeholder="Contoh: Matematika" required>
                 </div>
             </div>
             <div class="modal-footer">

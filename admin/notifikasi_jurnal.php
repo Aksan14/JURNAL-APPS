@@ -25,6 +25,24 @@ $hari_map = [
 ];
 $nama_hari = $hari_map[$hari_ini] ?? $hari_ini;
 
+// ============================================
+// CEK HARI LIBUR
+// ============================================
+$stmt_libur = $pdo->prepare("SELECT nama_libur, jenis FROM tbl_hari_libur WHERE tanggal = ?");
+$stmt_libur->execute([$tanggal_filter]);
+$hari_libur = $stmt_libur->fetch();
+
+// ============================================
+// CEK JAM KHUSUS (Pulang Cepat)
+// ============================================
+$stmt_jam_khusus_global = $pdo->prepare("
+    SELECT max_jam, alasan FROM tbl_jam_khusus 
+    WHERE tanggal = ? AND id_kelas IS NULL
+    LIMIT 1
+");
+$stmt_jam_khusus_global->execute([$tanggal_filter]);
+$jam_khusus_global = $stmt_jam_khusus_global->fetch();
+
 // Filter
 $filter_kelas = $_GET['kelas'] ?? '';
 $filter_guru = $_GET['guru'] ?? '';
@@ -234,7 +252,34 @@ require_once '../includes/header.php';
             <i class="fas fa-arrow-left me-1"></i> Lihat Hari Sabtu
         </a>
     </div>
+    <?php elseif ($hari_libur): ?>
+    <div class="alert alert-libur text-center py-5">
+        <i class="fas fa-calendar-times fa-4x mb-3"></i>
+        <h3><?= htmlspecialchars($hari_libur['nama_libur']) ?></h3>
+        <p class="mb-0">
+            <span class="badge bg-light text-dark"><?= ucfirst(str_replace('_', ' ', $hari_libur['jenis'])) ?></span>
+        </p>
+        <p class="mt-2 mb-0">Tidak ada jadwal pelajaran pada tanggal ini karena hari libur.</p>
+        <div class="mt-3">
+            <a href="?tanggal=<?= date('Y-m-d', strtotime($tanggal_filter . ' -1 day')) ?>" class="btn btn-light">
+                <i class="fas fa-arrow-left me-1"></i> Hari Sebelumnya
+            </a>
+            <a href="?tanggal=<?= date('Y-m-d', strtotime($tanggal_filter . ' +1 day')) ?>" class="btn btn-light">
+                Hari Berikutnya <i class="fas fa-arrow-right ms-1"></i>
+            </a>
+        </div>
+    </div>
     <?php else: ?>
+
+    <?php if ($jam_khusus_global): ?>
+    <div class="alert alert-warning d-flex align-items-center mb-4">
+        <i class="fas fa-clock fa-2x me-3"></i>
+        <div>
+            <strong>Jam Khusus:</strong> <?= htmlspecialchars($jam_khusus_global['alasan']) ?>
+            <br><small>Maksimal jam pelajaran: <strong><?= $jam_khusus_global['max_jam'] ?> jam</strong> untuk tanggal ini</small>
+        </div>
+    </div>
+    <?php endif; ?>
 
     <!-- Filter -->
     <div class="card shadow-sm mb-4">
@@ -457,7 +502,7 @@ require_once '../includes/header.php';
     </div>
     <?php endif; ?>
 
-    <?php endif; // end if bukan minggu ?>
+    <?php endif; // end if bukan minggu dan bukan libur ?>
 </div>
 
 <!-- Quick Navigation -->

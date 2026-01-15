@@ -14,12 +14,13 @@ $message = '';
 // 2. PROSES LOGIKA UPDATE (Dilakukan sebelum memanggil header.php)
 if (isset($_POST['update'])) {
     $id = $_POST['id'];
+    $kode_mapel = trim($_POST['kode_mapel'] ?? '');
     $nama_mapel = trim($_POST['nama_mapel']);
 
     if (!empty($nama_mapel)) {
         try {
-            $stmt = $pdo->prepare("UPDATE tbl_mapel SET nama_mapel = ? WHERE id = ?");
-            if ($stmt->execute([$nama_mapel, $id])) {
+            $stmt = $pdo->prepare("UPDATE tbl_mapel SET kode_mapel = ?, nama_mapel = ? WHERE id = ?");
+            if ($stmt->execute([$kode_mapel ?: null, $nama_mapel, $id])) {
                 // Redirect ke halaman manage_mapel setelah sukses
                 header("Location: manage_mapel.php?status=updated");
                 exit; // Hentikan script agar redirect berjalan sempurna
@@ -72,6 +73,17 @@ require_once '../includes/header.php';
                 <div class="card-body">
                     <form action="" method="POST">
                         <input type="hidden" name="id" value="<?php echo htmlspecialchars($mapel['id']); ?>">
+
+                        <div class="mb-3">
+                            <label for="kode_mapel" class="form-label">Kode Mata Pelajaran</label>
+                            <input type="text" 
+                                   class="form-control" 
+                                   id="kode_mapel" 
+                                   name="kode_mapel" 
+                                   value="<?php echo htmlspecialchars($mapel['kode_mapel'] ?? ''); ?>" 
+                                   placeholder="Contoh: MTK, IPA, BIG">
+                            <div class="form-text">Kode singkat untuk identifikasi mapel (boleh kosong)</div>
+                        </div>
 
                         <div class="mb-3">
                             <label for="nama_mapel" class="form-label">Nama Mata Pelajaran</label>

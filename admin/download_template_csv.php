@@ -129,5 +129,26 @@ elseif ($tipe == 'mengajar') {
     }
 }
 
+// ===================================
+// TEMPLATE HARI LIBUR
+// ===================================
+elseif ($tipe == 'libur') {
+    fputcsv($output, ['TANGGAL', 'NAMA_LIBUR', 'JENIS', 'KETERANGAN']);
+    fputcsv($output, ['2025-01-01', 'Tahun Baru 2025', 'nasional', '']);
+    fputcsv($output, ['2025-08-17', 'Hari Kemerdekaan RI', 'nasional', 'Upacara Bendera']);
+    fputcsv($output, ['2025-07-01', 'Libur Semester', 'sekolah', 'Mulai libur kenaikan kelas']);
+    fputcsv($output, ['']);
+    fputcsv($output, ['=== CATATAN ===']);
+    fputcsv($output, ['TANGGAL - format: YYYY-MM-DD atau DD/MM/YYYY (wajib)']);
+    fputcsv($output, ['NAMA_LIBUR - nama hari libur (wajib)']);
+    fputcsv($output, ['JENIS - pilihan: nasional, sekolah, cuti_bersama (opsional, default: sekolah)']);
+    fputcsv($output, ['KETERANGAN - informasi tambahan (opsional)']);
+    fputcsv($output, ['']);
+    fputcsv($output, ['=== JENIS LIBUR ===']);
+    fputcsv($output, ['nasional - Libur Nasional (merah)']);
+    fputcsv($output, ['sekolah - Libur Khusus Sekolah']);
+    fputcsv($output, ['cuti_bersama - Cuti Bersama']);
+}
+
 fclose($output);
 exit;
