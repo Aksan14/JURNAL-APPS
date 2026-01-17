@@ -421,6 +421,14 @@ $display_name = $_SESSION['display_name'] ?? 'Pengguna';
                 } else {
                      echo '<p class="text-danger p-3">Error: siswa/sidebar.php not found!</p>';
                 }
+            } elseif ($user_role == 'kepsek') {
+                $current_folder = 'kepsek';
+                // Cek Eksistensi File
+                if (file_exists(__DIR__ . '/../kepsek/sidebar.php')) {
+                    require_once __DIR__ . '/../kepsek/sidebar.php';
+                } else {
+                    echo '<p class="text-danger p-3">Error: kepsek/sidebar.php not found!</p>';
+                }
             } else {
                 // Sidebar default atau kosong jika role tidak dikenal
                 echo '<ul class="list-unstyled components"><li class="nav-item"><a href="'.BASE_URL.'/logout.php">Logout (Unknown Role)</a></li></ul>';

@@ -15,6 +15,14 @@ $user_id = $_SESSION['user_id'];
 $stmt_guru = $pdo->prepare("SELECT id, nama_guru FROM tbl_guru WHERE user_id = ?");
 $stmt_guru->execute([$user_id]);
 $guru = $stmt_guru->fetch();
+
+// Validasi: Pastikan guru ditemukan
+if (!$guru) {
+    $_SESSION['error_message'] = 'Akun Anda tidak terhubung dengan data guru. Silakan hubungi administrator.';
+    header('Location: ' . BASE_URL . '/guru/index.php');
+    exit;
+}
+
 $id_guru_login = $guru['id'];
 
 // Filter status

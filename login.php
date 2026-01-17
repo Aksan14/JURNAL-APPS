@@ -15,6 +15,8 @@ if (isset($_SESSION['logged_in']) && $_SESSION['logged_in'] === true) {
         header('Location: guru/index.php');
     } elseif ($_SESSION['role'] == 'walikelas') {
         header('Location: walikelas/index.php');
+    } elseif ($_SESSION['role'] == 'kepsek') {
+        header('Location: kepsek/index.php');
     } else {
         header('Location: siswa/index.php');
     }
@@ -22,6 +24,12 @@ if (isset($_SESSION['logged_in']) && $_SESSION['logged_in'] === true) {
 }
 
 $error_message = '';
+
+// Cek apakah ada pesan error dari session (misal dari guru yang tidak terhubung)
+if (isset($_SESSION['error_message'])) {
+    $error_message = $_SESSION['error_message'];
+    unset($_SESSION['error_message']);
+}
 
 // Logika saat form disubmit
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
@@ -50,6 +58,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 header('Location: ' . BASE_URL . '/guru/index.php');
             } elseif ($user['role'] == 'walikelas') {
                 header('Location: ' . BASE_URL . '/walikelas/index.php');
+            } elseif ($user['role'] == 'kepsek') {
+                header('Location: ' . BASE_URL . '/kepsek/index.php');
             } else {
                 header('Location: ' . BASE_URL . '/siswa/index.php');
             }

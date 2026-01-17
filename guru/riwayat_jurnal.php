@@ -12,6 +12,13 @@ $stmt_g = $pdo->prepare("SELECT id FROM tbl_guru WHERE user_id = ?");
 $stmt_g->execute([$user_id]);
 $id_guru = $stmt_g->fetchColumn();
 
+// Validasi: Pastikan guru ditemukan
+if (!$id_guru) {
+    $_SESSION['error_message'] = 'Akun Anda tidak terhubung dengan data guru. Silakan hubungi administrator.';
+    header('Location: ' . BASE_URL . '/guru/index.php');
+    exit;
+}
+
 // 2. LOGIKA HAPUS JURNAL (Pastikan jurnal tersebut milik guru yang login)
 if (isset($_GET['delete'])) {
     $id_jurnal = $_GET['delete'];
@@ -72,7 +79,7 @@ require_once '../includes/header.php';
 <div class="container-fluid">
     <div class="d-sm-flex align-items-center justify-content-between mb-4">
         <h1 class="h3 mb-0 text-gray-800">Riwayat Jurnal Mengajar</h1>
-        <a href="tambah_jurnal.php" class="btn btn-primary btn-sm shadow-sm">
+        <a href="isi_jurnal.php?open_modal=1" class="btn btn-primary btn-sm shadow-sm">
             <i class="fas fa-plus me-1"></i> Tambah Jurnal
         </a>
     </div>

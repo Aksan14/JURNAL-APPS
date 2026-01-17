@@ -12,6 +12,13 @@ $stmt = $pdo->prepare("SELECT * FROM tbl_guru WHERE user_id = ?");
 $stmt->execute([$user_id]);
 $guru = $stmt->fetch();
 
+// Validasi: Pastikan guru ditemukan
+if (!$guru) {
+    $_SESSION['error_message'] = 'Akun Anda tidak terhubung dengan data guru. Silakan hubungi administrator.';
+    header('Location: ' . BASE_URL . '/guru/index.php');
+    exit;
+}
+
 // 2. LOGIKA UPDATE PROFIL & FOTO
 if (isset($_POST['update_profil'])) {
     $nama = trim($_POST['nama_guru']);

@@ -12,6 +12,13 @@ $stmt_g = $pdo->prepare("SELECT id FROM tbl_guru WHERE user_id = ?");
 $stmt_g->execute([$user_id]);
 $id_guru = $stmt_g->fetchColumn();
 
+// Validasi: Pastikan guru ditemukan
+if (!$id_guru) {
+    $_SESSION['error_message'] = 'Akun Anda tidak terhubung dengan data guru. Silakan hubungi administrator.';
+    header('Location: ' . BASE_URL . '/guru/index.php');
+    exit;
+}
+
 // 2. Ambil ID Jurnal dari URL
 $id_jurnal = $_GET['id'] ?? 0;
 

@@ -12,6 +12,12 @@ $tahun = $_GET['tahun'] ?? date('Y');
 $stmt_g = $pdo->prepare("SELECT id, nama_guru, nip FROM tbl_guru WHERE user_id = ?");
 $stmt_g->execute([$user_id]);
 $guru = $stmt_g->fetch();
+
+// Validasi: Pastikan guru ditemukan
+if (!$guru) {
+    die('Data guru tidak ditemukan. Silakan hubungi administrator.');
+}
+
 $id_guru = $guru['id'];
 
 // Ambil Data Jurnal dengan statistik kehadiran

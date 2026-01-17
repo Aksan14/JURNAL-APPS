@@ -10,6 +10,17 @@ $user_id = $_SESSION['user_id'];
 $stmt_guru = $pdo->prepare("SELECT * FROM tbl_guru WHERE user_id = ?");
 $stmt_guru->execute([$user_id]);
 $guru = $stmt_guru->fetch();
+
+// Validasi: Pastikan guru ditemukan
+if (!$guru) {
+    // Logout dan redirect ke login dengan pesan error
+    session_destroy();
+    session_start();
+    $_SESSION['error_message'] = 'Akun Anda tidak terhubung dengan data guru. Silakan hubungi administrator untuk membuat hubungan akun.';
+    header('Location: ' . BASE_URL . '/login.php');
+    exit;
+}
+
 $id_guru = $guru['id'];
 
 // 2. Statistik Ringkas
@@ -165,6 +176,20 @@ require_once '../includes/header.php';
 ?>
 
 <div class="container-fluid">
+    <?php 
+    // Tampilkan pesan error jika ada
+    if (isset($_SESSION['error_message'])): 
+    ?>
+    <div class="alert alert-danger alert-dismissible fade show shadow-sm mb-4" role="alert">
+        <i class="fas fa-exclamation-triangle me-2"></i>
+        <?= htmlspecialchars($_SESSION['error_message']); ?>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    <?php 
+        unset($_SESSION['error_message']); 
+    endif; 
+    ?>
+    
     <?php if (!empty($libur_hari_ini)): ?>
     <!-- NOTIFIKASI HARI LIBUR HARI INI -->
     <div class="alert alert-danger alert-dismissible fade show shadow-sm mb-4" role="alert">

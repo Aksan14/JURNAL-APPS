@@ -26,7 +26,7 @@ CREATE TABLE tbl_users (
     id INT AUTO_INCREMENT PRIMARY KEY,
     username VARCHAR(50) NOT NULL UNIQUE,
     password_hash VARCHAR(255) NOT NULL,
-    role ENUM('admin', 'guru', 'walikelas', 'siswa') NOT NULL DEFAULT 'guru',
+    role ENUM('admin', 'guru', 'walikelas', 'siswa', 'kepsek') NOT NULL DEFAULT 'guru',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     INDEX idx_username (username),
     INDEX idx_role (role)
@@ -217,11 +217,13 @@ CREATE TABLE tbl_jam_khusus (
 ) ENGINE=InnoDB;
 
 -- =====================================================
--- DATA AWAL: Admin default
+-- DATA AWAL: Admin & Kepsek default
 -- Username: admin | Password: password
+-- Username: kepsek | Password: kepsek123
 -- =====================================================
 INSERT INTO tbl_users (username, password_hash, role) VALUES 
-('admin', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'admin');
+('admin', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'admin'),
+('kepsek', '$2y$10$nbmZa6UbB9/PldYpdtLnSOH89.sFjI4UHRNPY0O4z/w0iPvVxNKe6', 'kepsek');
 
 -- =====================================================
 -- VIEW: v_jadwal_belum_isi_jurnal

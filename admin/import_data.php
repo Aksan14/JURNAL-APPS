@@ -82,23 +82,10 @@ if (isset($_POST['upload_file']) && isset($_FILES['file_excel'])) {
                     $nis = trim($row['A'] ?? '');
                     $nama_siswa = trim($row['B'] ?? '');
                     $id_kelas = trim($row['C'] ?? '');
-                    $username = trim($row['D'] ?? '');
-                    $password = trim($row['E'] ?? '');
 
                     if (empty($nis) || empty($nama_siswa) || empty($id_kelas)) {
                         $gagal++;
                         $details[] = "Baris $baris_ke: Data tidak lengkap (NIS/Nama/Kelas kosong)";
-                        $baris_ke++;
-                        continue;
-                    }
-
-                    // Validasi: Cek apakah ID Kelas ada di database
-                    $checkKelas = $pdo->prepare("SELECT id, nama_kelas FROM tbl_kelas WHERE id = ?");
-                    $checkKelas->execute([$id_kelas]);
-                    $kelasExists = $checkKelas->fetch();
-                    if (!$kelasExists) {
-                        $gagal++;
-                        $details[] = "Baris $baris_ke: ID Kelas '$id_kelas' tidak ditemukan di database. Silakan cek referensi ID Kelas di template.";
                         $baris_ke++;
                         continue;
                     }
@@ -118,47 +105,10 @@ if (isset($_POST['upload_file']) && isset($_FILES['file_excel'])) {
                             $details[] = "Baris $baris_ke: NIS $nis sudah ada, di-skip";
                         }
                     } else {
-                        // Generate username jika kosong (dari NIS)
-                        if (empty($username)) {
-                            $username = $nis; // Default username = NIS
-                            // Pastikan username unik
-                            $base_username = $username;
-                            $counter = 1;
-                            while (true) {
-                                $checkUser = $pdo->prepare("SELECT id FROM tbl_users WHERE username = ?");
-                                $checkUser->execute([$username]);
-                                if (!$checkUser->fetch()) break;
-                                $username = $base_username . $counter;
-                                $counter++;
-                            }
-                        } else {
-                            // Cek apakah username sudah ada
-                            $checkUser = $pdo->prepare("SELECT id FROM tbl_users WHERE username = ?");
-                            $checkUser->execute([$username]);
-                            if ($checkUser->fetch()) {
-                                $gagal++;
-                                $details[] = "Baris $baris_ke: Username '$username' sudah ada";
-                                $baris_ke++;
-                                continue;
-                            }
-                        }
-
-                        // Password default = username jika kosong
-                        if (empty($password)) {
-                            $password = $username;
-                        }
-                        $password_hash = password_hash($password, PASSWORD_DEFAULT);
-
-                        // 1. Insert ke tbl_users dulu
-                        $stmt1 = $pdo->prepare("INSERT INTO tbl_users (username, password_hash, role) VALUES (?, ?, 'siswa')");
-                        $stmt1->execute([$username, $password_hash]);
-                        $user_id = $pdo->lastInsertId();
-
-                        // 2. Insert siswa baru dengan user_id
-                        $stmt = $pdo->prepare("INSERT INTO tbl_siswa (user_id, nis, nama_siswa, id_kelas) VALUES (?, ?, ?, ?)");
-                        $stmt->execute([$user_id, $nis, $nama_siswa, $id_kelas]);
+                        // Insert siswa baru (tanpa akun dulu)
+                        $stmt = $pdo->prepare("INSERT INTO tbl_siswa (nis, nama_siswa, id_kelas) VALUES (?, ?, ?)");
+                        $stmt->execute([$nis, $nama_siswa, $id_kelas]);
                         $sukses++;
-                        $details[] = "Baris $baris_ke: Siswa '$nama_siswa' berhasil ditambah dengan username '$username'";
                     }
                 
                 // ===================================
@@ -178,68 +128,108 @@ if (isset($_POST['upload_file']) && isset($_FILES['file_excel'])) {
                         continue;
                     }
 
-                    // Cek apakah NIP sudah ada (jika NIP tidak kosong)
-                    if (!empty($nip)) {
-                        $check = $pdo->prepare("SELECT id FROM tbl_guru WHERE nip = ?");
-                        $check->execute([$nip]);
-                        $existing = $check->fetch();
-
-                        if ($existing) {
-                            if ($mode == 'update') {
-                                $stmt = $pdo->prepare("UPDATE tbl_guru SET nama_guru = ?, email = ? WHERE nip = ?");
-                                $stmt->execute([$nama_guru, $email, $nip]);
-                                $update++;
-                            } else {
-                                $skip++;
-                                $details[] = "Baris $baris_ke: NIP $nip sudah ada, di-skip";
-                            }
-                            $baris_ke++;
-                            continue;
-                        }
-                    }
-
-                    // Generate username jika kosong (dari nama guru atau NIP)
+                    // Username wajib diisi untuk membuat akun
                     if (empty($username)) {
-                        // Buat username dari nama guru (lowercase, tanpa spasi)
-                        $username = strtolower(preg_replace('/[^a-zA-Z0-9]/', '', $nama_guru));
-                        // Pastikan username unik
-                        $base_username = $username;
-                        $counter = 1;
-                        while (true) {
-                            $checkUser = $pdo->prepare("SELECT id FROM tbl_users WHERE username = ?");
-                            $checkUser->execute([$username]);
-                            if (!$checkUser->fetch()) break;
-                            $username = $base_username . $counter;
-                            $counter++;
-                        }
-                    } else {
-                        // Cek apakah username sudah ada
-                        $checkUser = $pdo->prepare("SELECT id FROM tbl_users WHERE username = ?");
-                        $checkUser->execute([$username]);
-                        if ($checkUser->fetch()) {
-                            $gagal++;
-                            $details[] = "Baris $baris_ke: Username '$username' sudah ada";
-                            $baris_ke++;
-                            continue;
-                        }
+                        $gagal++;
+                        $details[] = "Baris $baris_ke: Username kosong (wajib untuk membuat akun)";
+                        $baris_ke++;
+                        continue;
                     }
 
-                    // Password default = username jika kosong
+                    // Password wajib diisi
                     if (empty($password)) {
-                        $password = $username;
+                        $gagal++;
+                        $details[] = "Baris $baris_ke: Password kosong (wajib untuk membuat akun)";
+                        $baris_ke++;
+                        continue;
                     }
-                    $password_hash = password_hash($password, PASSWORD_DEFAULT);
 
-                    // 1. Insert ke tbl_users dulu
-                    $stmt1 = $pdo->prepare("INSERT INTO tbl_users (username, password_hash, role) VALUES (?, ?, 'guru')");
-                    $stmt1->execute([$username, $password_hash]);
-                    $user_id = $pdo->lastInsertId();
+                    // Cek apakah guru sudah ada berdasarkan NIP atau Username
+                    $existing_guru = null;
+                    $existing_user = null;
+
+                    // Cek berdasarkan NIP (jika diisi)
+                    if (!empty($nip)) {
+                        $check_nip = $pdo->prepare("SELECT g.id, g.user_id, u.username FROM tbl_guru g LEFT JOIN tbl_users u ON g.user_id = u.id WHERE g.nip = ?");
+                        $check_nip->execute([$nip]);
+                        $existing_guru = $check_nip->fetch();
+                    }
+
+                    // Cek berdasarkan username
+                    $check_username = $pdo->prepare("SELECT u.id, g.id as guru_id FROM tbl_users u LEFT JOIN tbl_guru g ON g.user_id = u.id WHERE u.username = ?");
+                    $check_username->execute([$username]);
+                    $existing_user = $check_username->fetch();
+
+                    // Jika data sudah ada (berdasarkan NIP atau username)
+                    if ($existing_guru || $existing_user) {
+                        if ($mode == 'update') {
+                            // Update data yang sudah ada
+                            if ($existing_guru && $existing_guru['user_id']) {
+                                // Update guru berdasarkan NIP
+                                $stmt_guru = $pdo->prepare("UPDATE tbl_guru SET nama_guru = ?, email = ? WHERE id = ?");
+                                $stmt_guru->execute([$nama_guru, $email, $existing_guru['id']]);
+                                
+                                // Update user (username dan password)
+                                $password_hash = password_hash($password, PASSWORD_DEFAULT);
+                                $stmt_user = $pdo->prepare("UPDATE tbl_users SET username = ?, password_hash = ? WHERE id = ?");
+                                $stmt_user->execute([$username, $password_hash, $existing_guru['user_id']]);
+                                
+                                $update++;
+                                $details[] = "Baris $baris_ke: Guru $nama_guru (NIP: $nip) berhasil diupdate";
+                            } elseif ($existing_user && $existing_user['guru_id']) {
+                                // Update guru berdasarkan username
+                                $stmt_guru = $pdo->prepare("UPDATE tbl_guru SET nama_guru = ?, nip = ?, email = ? WHERE id = ?");
+                                $stmt_guru->execute([$nama_guru, $nip, $email, $existing_user['guru_id']]);
+                                
+                                // Update password user
+                                $password_hash = password_hash($password, PASSWORD_DEFAULT);
+                                $stmt_user = $pdo->prepare("UPDATE tbl_users SET password_hash = ? WHERE id = ?");
+                                $stmt_user->execute([$password_hash, $existing_user['id']]);
+                                
+                                $update++;
+                                $details[] = "Baris $baris_ke: Guru $nama_guru (Username: $username) berhasil diupdate";
+                            } elseif ($existing_user && !$existing_user['guru_id']) {
+                                // Username ada tapi bukan guru, gagalkan
+                                $gagal++;
+                                $details[] = "Baris $baris_ke: Username '$username' sudah digunakan oleh user lain (bukan guru)";
+                            } else {
+                                // Guru ada tapi belum punya akun, buat akun baru
+                                $password_hash = password_hash($password, PASSWORD_DEFAULT);
+                                $stmt_user = $pdo->prepare("INSERT INTO tbl_users (username, password_hash, role) VALUES (?, ?, 'guru')");
+                                $stmt_user->execute([$username, $password_hash]);
+                                $new_user_id = $pdo->lastInsertId();
+                                
+                                $stmt_guru = $pdo->prepare("UPDATE tbl_guru SET user_id = ?, nama_guru = ?, email = ? WHERE id = ?");
+                                $stmt_guru->execute([$new_user_id, $nama_guru, $email, $existing_guru['id']]);
+                                
+                                $update++;
+                                $details[] = "Baris $baris_ke: Guru $nama_guru diupdate dan akun dibuat (Username: $username)";
+                            }
+                        } else {
+                            // Mode skip
+                            $skip++;
+                            if ($existing_guru) {
+                                $details[] = "Baris $baris_ke: NIP $nip sudah ada, di-skip";
+                            } else {
+                                $details[] = "Baris $baris_ke: Username '$username' sudah ada, di-skip";
+                            }
+                        }
+                        $baris_ke++;
+                        continue;
+                    }
+
+                    // Data belum ada, insert baru
+                    // 1. Buat akun user terlebih dahulu
+                    $password_hash = password_hash($password, PASSWORD_DEFAULT);
+                    $stmt_user = $pdo->prepare("INSERT INTO tbl_users (username, password_hash, role) VALUES (?, ?, 'guru')");
+                    $stmt_user->execute([$username, $password_hash]);
+                    $new_user_id = $pdo->lastInsertId();
 
                     // 2. Insert guru baru dengan user_id
                     $stmt = $pdo->prepare("INSERT INTO tbl_guru (user_id, nip, nama_guru, email) VALUES (?, ?, ?, ?)");
-                    $stmt->execute([$user_id, $nip, $nama_guru, $email]);
+                    $stmt->execute([$new_user_id, $nip, $nama_guru, $email]);
                     $sukses++;
-                    $details[] = "Baris $baris_ke: Guru '$nama_guru' berhasil ditambah dengan username '$username'";
+                    $details[] = "Baris $baris_ke: Guru $nama_guru berhasil ditambah (Username: $username)";
 
                 // ===================================
                 // PROSES IMPORT MAPEL
@@ -288,18 +278,6 @@ if (isset($_POST['upload_file']) && isset($_FILES['file_excel'])) {
                         continue;
                     }
 
-                    // Validasi: Cek apakah ID Wali Kelas (guru) ada di database
-                    if ($id_wali_kelas !== NULL) {
-                        $checkGuru = $pdo->prepare("SELECT id FROM tbl_guru WHERE id = ?");
-                        $checkGuru->execute([$id_wali_kelas]);
-                        if (!$checkGuru->fetch()) {
-                            $gagal++;
-                            $details[] = "Baris $baris_ke: ID Wali Kelas '$id_wali_kelas' tidak ditemukan di database";
-                            $baris_ke++;
-                            continue;
-                        }
-                    }
-
                     // Cek duplikat
                     $check = $pdo->prepare("SELECT id FROM tbl_kelas WHERE nama_kelas = ?");
                     $check->execute([$nama_kelas]);
@@ -346,36 +324,6 @@ if (isset($_POST['upload_file']) && isset($_FILES['file_excel'])) {
                         continue;
                     }
 
-                    // Validasi: Cek apakah ID Guru ada di database
-                    $checkGuru = $pdo->prepare("SELECT id, nama_guru FROM tbl_guru WHERE id = ?");
-                    $checkGuru->execute([$id_guru]);
-                    if (!$checkGuru->fetch()) {
-                        $gagal++;
-                        $details[] = "Baris $baris_ke: ID Guru '$id_guru' tidak ditemukan di database";
-                        $baris_ke++;
-                        continue;
-                    }
-
-                    // Validasi: Cek apakah ID Mapel ada di database
-                    $checkMapel = $pdo->prepare("SELECT id FROM tbl_mapel WHERE id = ?");
-                    $checkMapel->execute([$id_mapel]);
-                    if (!$checkMapel->fetch()) {
-                        $gagal++;
-                        $details[] = "Baris $baris_ke: ID Mapel '$id_mapel' tidak ditemukan di database";
-                        $baris_ke++;
-                        continue;
-                    }
-
-                    // Validasi: Cek apakah ID Kelas ada di database
-                    $checkKelas = $pdo->prepare("SELECT id FROM tbl_kelas WHERE id = ?");
-                    $checkKelas->execute([$id_kelas]);
-                    if (!$checkKelas->fetch()) {
-                        $gagal++;
-                        $details[] = "Baris $baris_ke: ID Kelas '$id_kelas' tidak ditemukan di database";
-                        $baris_ke++;
-                        continue;
-                    }
-
                     // Cek duplikat berdasarkan unique key uk_jadwal (id_kelas, hari, jam_ke)
                     $check = $pdo->prepare("SELECT id FROM tbl_mengajar WHERE id_kelas = ? AND hari = ? AND jam_ke = ?");
                     $check->execute([$id_kelas, $hari, $jam_ke]);
@@ -392,62 +340,6 @@ if (isset($_POST['upload_file']) && isset($_FILES['file_excel'])) {
                     } else {
                         $stmt = $pdo->prepare("INSERT INTO tbl_mengajar (id_guru, id_mapel, id_kelas, hari, jam_ke, jumlah_jam_mingguan) VALUES (?, ?, ?, ?, ?, ?)");
                         $stmt->execute([$id_guru, $id_mapel, $id_kelas, $hari, $jam_ke, $jumlah_jam]);
-                        $sukses++;
-                    }
-
-                // ===================================
-                // PROSES IMPORT HARI LIBUR
-                // ===================================
-                } elseif ($import_type == 'libur') {
-                    $tanggal = trim($row['A'] ?? '');
-                    $nama_libur = trim($row['B'] ?? '');
-                    $jenis = strtolower(trim($row['C'] ?? 'sekolah'));
-                    $keterangan = trim($row['D'] ?? '');
-
-                    if (empty($tanggal) || empty($nama_libur)) {
-                        $gagal++;
-                        $details[] = "Baris $baris_ke: Tanggal atau nama libur kosong";
-                        $baris_ke++;
-                        continue;
-                    }
-
-                    // Validasi format tanggal
-                    $date = DateTime::createFromFormat('Y-m-d', $tanggal);
-                    if (!$date) {
-                        $date = DateTime::createFromFormat('d/m/Y', $tanggal);
-                    }
-                    if (!$date) {
-                        $gagal++;
-                        $details[] = "Baris $baris_ke: Format tanggal '$tanggal' tidak valid (gunakan YYYY-MM-DD atau DD/MM/YYYY)";
-                        $baris_ke++;
-                        continue;
-                    }
-                    $tanggal = $date->format('Y-m-d');
-
-                    // Validasi jenis
-                    $jenis_valid = ['nasional', 'sekolah', 'cuti_bersama'];
-                    if (!in_array($jenis, $jenis_valid)) {
-                        $jenis = 'sekolah'; // Default
-                    }
-
-                    // Cek duplikat (untuk libur umum: id_kelas IS NULL)
-                    $check = $pdo->prepare("SELECT id FROM tbl_hari_libur WHERE tanggal = ? AND id_kelas IS NULL");
-                    $check->execute([$tanggal]);
-                    $existing = $check->fetch();
-
-                    if ($existing) {
-                        if ($mode == 'update') {
-                            $stmt = $pdo->prepare("UPDATE tbl_hari_libur SET nama_libur = ?, jenis = ?, keterangan = ? WHERE tanggal = ? AND id_kelas IS NULL");
-                            $stmt->execute([$nama_libur, $jenis, $keterangan ?: null, $tanggal]);
-                            $update++;
-                        } else {
-                            $skip++;
-                            $details[] = "Baris $baris_ke: Tanggal $tanggal sudah ada, di-skip";
-                        }
-                    } else {
-                        // Insert dengan id_kelas = NULL (berlaku untuk SEMUA kelas/jadwal guru)
-                        $stmt = $pdo->prepare("INSERT INTO tbl_hari_libur (tanggal, nama_libur, jenis, id_kelas, keterangan) VALUES (?, ?, ?, NULL, ?)");
-                        $stmt->execute([$tanggal, $nama_libur, $jenis, $keterangan ?: null]);
                         $sukses++;
                     }
                 }
@@ -519,9 +411,6 @@ require_once '../includes/header.php';
         </li>
         <li class="nav-item" role="presentation">
             <button class="nav-link" id="mengajar-tab" data-bs-toggle="tab" data-bs-target="#mengajar" type="button">Import Plotting</button>
-        </li>
-        <li class="nav-item" role="presentation">
-            <button class="nav-link" id="libur-tab" data-bs-toggle="tab" data-bs-target="#libur" type="button">Import Hari Libur</button>
         </li>
     </ul>
 
@@ -768,67 +657,6 @@ require_once '../includes/header.php';
             </div>
         </div>
 
-        <!-- TAB HARI LIBUR -->
-        <div class="tab-pane fade" id="libur" role="tabpanel">
-            <div class="card shadow border-top-0 rounded-0 rounded-bottom">
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <h5><i class="fas fa-download text-success"></i> Langkah 1: Download Template</h5>
-                            <p class="text-muted small">Download template, isi data hari libur sesuai format.</p>
-                            <a href="download_template_csv.php?tipe=libur" class="btn btn-success btn-sm mb-3">
-                                <i class="fas fa-file-csv"></i> Download Template Hari Libur (CSV)
-                            </a>
-                            
-                            <div class="alert alert-success small">
-                                <strong><i class="fas fa-globe me-1"></i> Berlaku untuk SEMUA Jadwal:</strong><br>
-                                Hari libur yang diimport akan mempengaruhi <strong>semua jadwal guru</strong> dan <strong>semua kelas</strong>.
-                            </div>
-                            
-                            <div class="alert alert-info small">
-                                <strong>Format Kolom:</strong><br>
-                                A = Tanggal (wajib, format YYYY-MM-DD atau DD/MM/YYYY)<br>
-                                B = Nama Libur (wajib)<br>
-                                C = Jenis (opsional: nasional/sekolah/cuti_bersama, default: sekolah)<br>
-                                D = Keterangan (opsional)
-                            </div>
-                            
-                            <div class="alert alert-warning small">
-                                <strong>Contoh Data:</strong><br>
-                                2025-01-01, Tahun Baru 2025, nasional, -<br>
-                                2025-08-17, Hari Kemerdekaan RI, nasional, Upacara bendera<br>
-                                2025-07-01, Libur Semester, sekolah, Mulai libur kenaikan
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <h5><i class="fas fa-upload text-primary"></i> Langkah 2: Upload File</h5>
-                            <form action="import_data.php" method="POST" enctype="multipart/form-data">
-                                <input type="hidden" name="import_type" value="libur">
-                                <div class="mb-3">
-                                    <label class="form-label">Pilih File (.csv, .xlsx, .xls)</label>
-                                    <input class="form-control" type="file" name="file_excel" accept=".csv,.xlsx,.xls" required>
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label">Jika Tanggal sudah ada:</label>
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="radio" name="mode" value="skip" id="libur_skip" checked>
-                                        <label class="form-check-label" for="libur_skip">Skip (lewati)</label>
-                                    </div>
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="radio" name="mode" value="update" id="libur_update">
-                                        <label class="form-check-label" for="libur_update">Update (timpa data)</label>
-                                    </div>
-                                </div>
-                                <button type="submit" name="upload_file" class="btn btn-primary">
-                                    <i class="fas fa-upload"></i> Import Hari Libur
-                                </button>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
     </div>
 
     <!-- Info Catatan -->
@@ -839,12 +667,10 @@ require_once '../includes/header.php';
         <div class="card-body">
             <ul class="mb-0">
                 <li>Pastikan data referensi (Guru, Kelas, Mapel) sudah diimport terlebih dahulu sebelum import Siswa atau Plotting.</li>
-                <li>Import <strong>Siswa</strong> dan <strong>Guru</strong> akan otomatis membuat akun login. Password default = Username.</li>
+                <li>Import <strong>Siswa</strong> dan <strong>Guru</strong> tidak langsung membuat akun login. Buat akun melalui menu Kelola Guru/Siswa.</li>
                 <li>Gunakan mode <strong>Update</strong> jika ingin memperbarui data yang sudah ada.</li>
-                <li>File harus berformat <strong>.csv</strong> atau <strong>.xlsx</strong> (Excel 2007+).</li>
+                <li>File harus berformat <strong>.xlsx</strong> (Excel 2007+).</li>
                 <li>Baris pertama dianggap sebagai header dan akan dilewati.</li>
-                <li><strong>Import Hari Libur</strong>: Hari libur yang diimport akan <strong>berlaku untuk SEMUA jadwal guru dan kelas</strong>. Untuk libur khusus kelas tertentu, gunakan menu <a href="manage_libur.php">Kelola Libur</a>.</li>
-                <li><strong>Jam Khusus</strong>: Untuk mengatur jam khusus (pulang cepat, dll), gunakan menu <a href="manage_libur.php">Kelola Libur & Jam Khusus</a>.</li>
             </ul>
         </div>
     </div>
