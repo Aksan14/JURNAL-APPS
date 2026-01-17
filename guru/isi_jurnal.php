@@ -241,7 +241,8 @@ foreach ($approved_dates as $ad) {
 // AMBIL DATA HARI LIBUR & JAM KHUSUS UNTUK JS
 // ============================================
 // Ambil semua kelas yang diajar guru ini
-$kelas_guru_ids = array_unique(array_filter(array_column($daftar_mengajar, 'id_kelas')));
+// array_values() digunakan untuk mereset key agar PDO execute() bekerja dengan benar
+$kelas_guru_ids = array_values(array_unique(array_filter(array_column($daftar_mengajar, 'id_kelas'))));
 $libur_data = [];
 $jam_khusus_data = [];
 
