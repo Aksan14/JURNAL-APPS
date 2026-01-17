@@ -82,6 +82,8 @@ if (isset($_POST['upload_file']) && isset($_FILES['file_excel'])) {
                     $nis = trim($row['A'] ?? '');
                     $nama_siswa = trim($row['B'] ?? '');
                     $id_kelas = trim($row['C'] ?? '');
+                    $username = trim($row['D'] ?? '');
+                    $password = trim($row['E'] ?? '');
 
                     if (empty($nis) || empty($nama_siswa) || empty($id_kelas)) {
                         $gagal++;
@@ -90,25 +92,82 @@ if (isset($_POST['upload_file']) && isset($_FILES['file_excel'])) {
                         continue;
                     }
 
+                    // Cek apakah kelas valid
+                    $check_kelas = $pdo->prepare("SELECT id FROM tbl_kelas WHERE id = ?");
+                    $check_kelas->execute([$id_kelas]);
+                    if (!$check_kelas->fetch()) {
+                        $gagal++;
+                        $details[] = "Baris $baris_ke: ID Kelas '$id_kelas' tidak ditemukan";
+                        $baris_ke++;
+                        continue;
+                    }
+
                     // Cek apakah NIS sudah ada
-                    $check = $pdo->prepare("SELECT id FROM tbl_siswa WHERE nis = ?");
+                    $check = $pdo->prepare("SELECT s.id, s.user_id, u.username FROM tbl_siswa s LEFT JOIN tbl_users u ON s.user_id = u.id WHERE s.nis = ?");
                     $check->execute([$nis]);
                     $existing = $check->fetch();
 
+                    // Cek apakah username sudah dipakai (jika diisi)
+                    if (!empty($username)) {
+                        $check_username = $pdo->prepare("SELECT id FROM tbl_users WHERE username = ?");
+                        $check_username->execute([$username]);
+                        $existing_user = $check_username->fetch();
+                        
+                        if ($existing_user && (!$existing || $existing['user_id'] != $existing_user['id'])) {
+                            $gagal++;
+                            $details[] = "Baris $baris_ke: Username '$username' sudah digunakan user lain";
+                            $baris_ke++;
+                            continue;
+                        }
+                    }
+
                     if ($existing) {
                         if ($mode == 'update') {
+                            // Update data siswa
                             $stmt = $pdo->prepare("UPDATE tbl_siswa SET nama_siswa = ?, id_kelas = ? WHERE nis = ?");
                             $stmt->execute([$nama_siswa, $id_kelas, $nis]);
+                            
+                            // Update/buat akun jika username & password diisi
+                            if (!empty($username) && !empty($password)) {
+                                $password_hash = password_hash($password, PASSWORD_DEFAULT);
+                                if ($existing['user_id']) {
+                                    // Update akun existing
+                                    $stmt_user = $pdo->prepare("UPDATE tbl_users SET username = ?, password_hash = ? WHERE id = ?");
+                                    $stmt_user->execute([$username, $password_hash, $existing['user_id']]);
+                                } else {
+                                    // Buat akun baru
+                                    $stmt_user = $pdo->prepare("INSERT INTO tbl_users (username, password_hash, role) VALUES (?, ?, 'siswa')");
+                                    $stmt_user->execute([$username, $password_hash]);
+                                    $new_user_id = $pdo->lastInsertId();
+                                    $pdo->prepare("UPDATE tbl_siswa SET user_id = ? WHERE id = ?")->execute([$new_user_id, $existing['id']]);
+                                }
+                            }
                             $update++;
+                            $details[] = "Baris $baris_ke: Siswa $nama_siswa (NIS: $nis) berhasil diupdate";
                         } else {
                             $skip++;
                             $details[] = "Baris $baris_ke: NIS $nis sudah ada, di-skip";
                         }
                     } else {
-                        // Insert siswa baru (tanpa akun dulu)
-                        $stmt = $pdo->prepare("INSERT INTO tbl_siswa (nis, nama_siswa, id_kelas) VALUES (?, ?, ?)");
-                        $stmt->execute([$nis, $nama_siswa, $id_kelas]);
+                        // Insert siswa baru
+                        $new_user_id = null;
+                        
+                        // Buat akun user jika username & password diisi
+                        if (!empty($username) && !empty($password)) {
+                            $password_hash = password_hash($password, PASSWORD_DEFAULT);
+                            $stmt_user = $pdo->prepare("INSERT INTO tbl_users (username, password_hash, role) VALUES (?, ?, 'siswa')");
+                            $stmt_user->execute([$username, $password_hash]);
+                            $new_user_id = $pdo->lastInsertId();
+                        }
+                        
+                        // Insert siswa
+                        $stmt = $pdo->prepare("INSERT INTO tbl_siswa (user_id, nis, nama_siswa, id_kelas) VALUES (?, ?, ?, ?)");
+                        $stmt->execute([$new_user_id, $nis, $nama_siswa, $id_kelas]);
                         $sukses++;
+                        
+                        if ($new_user_id) {
+                            $details[] = "Baris $baris_ke: Siswa $nama_siswa berhasil ditambah dengan akun (Username: $username)";
+                        }
                     }
                 
                 // ===================================

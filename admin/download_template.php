@@ -42,9 +42,21 @@ if ($tipe == 'siswa') {
     $sheet->setCellValue('D1', 'USERNAME');
     $sheet->setCellValue('E1', 'PASSWORD');
     $sheet->getStyle('A1:E1')->getFont()->setBold(true);
+    $sheet->getColumnDimension('A')->setWidth(15);
     $sheet->getColumnDimension('B')->setWidth(35);
+    $sheet->getColumnDimension('C')->setWidth(12);
     $sheet->getColumnDimension('D')->setWidth(20);
+    $sheet->getColumnDimension('E')->setWidth(20);
     $filename = 'TEMPLATE_IMPORT_SISWA.xlsx';
+    
+    // Catatan
+    $sheet->setCellValue('G1', 'CATATAN:');
+    $sheet->setCellValue('G2', '- NIS, NAMA_SISWA, ID_KELAS wajib diisi');
+    $sheet->setCellValue('G3', '- USERNAME & PASSWORD opsional (untuk login siswa)');
+    $sheet->setCellValue('G4', '- Lihat sheet "Referensi ID Kelas" untuk ID Kelas');
+    $sheet->getStyle('G1')->getFont()->setBold(true);
+    $sheet->getStyle('G2:G4')->getFont()->setColor(new \PhpOffice\PhpSpreadsheet\Style\Color('FF666666'));
+    $sheet->getColumnDimension('G')->setWidth(45);
     
     // Ambil referensi ID Kelas
     try {

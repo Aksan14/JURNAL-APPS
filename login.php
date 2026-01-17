@@ -157,22 +157,24 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             display: block;
         }
         
-        .input-group {
+        .input-wrapper {
             position: relative;
-            display: flex;
-            align-items: center;
         }
         
-        .input-group .input-icon {
+        .input-wrapper .input-icon {
             position: absolute;
             left: 16px;
             top: 50%;
             transform: translateY(-50%);
             color: #666;
             font-size: 1rem;
-            transition: color 0.3s ease;
-            z-index: 2;
+            z-index: 3;
             pointer-events: none;
+            transition: color 0.3s ease;
+        }
+        
+        .input-wrapper.focused .input-icon {
+            color: #cc0000;
         }
         
         .form-control {
@@ -198,11 +200,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             outline: none;
         }
         
-        .input-group.focused .input-icon,
-        .form-control:focus ~ .input-icon {
-            color: #cc0000;
-        }
-        
         .form-control::placeholder {
             color: #666;
         }
@@ -219,7 +216,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             cursor: pointer;
             padding: 8px;
             transition: color 0.3s ease;
-            z-index: 2;
+            z-index: 3;
         }
         
         .password-toggle:hover,
@@ -374,17 +371,17 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             <form action="login.php" method="POST" id="loginForm">
                 <div class="form-group">
                     <label class="form-label">Username</label>
-                    <div class="input-group">
-                        <input type="text" class="form-control" id="username" name="username" placeholder="Masukkan username" required>
+                    <div class="input-wrapper">
                         <i class="fas fa-user input-icon"></i>
+                        <input type="text" class="form-control" id="username" name="username" placeholder="Masukkan username" required autocomplete="username">
                     </div>
                 </div>
                 
                 <div class="form-group">
                     <label class="form-label">Password</label>
-                    <div class="input-group">
-                        <input type="password" class="form-control" id="password" name="password" placeholder="Masukkan password" required>
+                    <div class="input-wrapper">
                         <i class="fas fa-lock input-icon"></i>
+                        <input type="password" class="form-control" id="password" name="password" placeholder="Masukkan password" required autocomplete="current-password">
                         <button type="button" class="password-toggle" onclick="togglePassword()">
                             <i class="fas fa-eye" id="toggleIcon"></i>
                         </button>
@@ -432,13 +429,13 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             document.getElementById('btnLogin').classList.add('loading');
         });
         
-        // Focus effect
+        // Focus effect for icon color
         document.querySelectorAll('.form-control').forEach(input => {
             input.addEventListener('focus', function() {
-                this.parentElement.classList.add('focused');
+                this.closest('.input-wrapper').classList.add('focused');
             });
             input.addEventListener('blur', function() {
-                this.parentElement.classList.remove('focused');
+                this.closest('.input-wrapper').classList.remove('focused');
             });
         });
     </script>
