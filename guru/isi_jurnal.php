@@ -86,6 +86,34 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['simpan_jurnal'])) {
         </div>";
     } else {
 
+    // ============================================
+    // VALIDASI BLOKIR GURU (Tidak Hadir/Sakit/Izin/Cuti)
+    // ============================================
+    $stmt_blokir = $pdo->prepare("
+        SELECT status_kehadiran, keterangan FROM tbl_kehadiran_guru 
+        WHERE id_guru = ? AND tanggal = ?
+    ");
+    $stmt_blokir->execute([$id_guru_login, $tanggal]);
+    $data_blokir = $stmt_blokir->fetch();
+    
+    $status_blokir_labels = [
+        'tidak_hadir' => 'Tidak Hadir',
+        'sakit' => 'Sakit',
+        'izin' => 'Izin',
+        'cuti' => 'Cuti'
+    ];
+    
+    if ($data_blokir) {
+        $status_text = $status_blokir_labels[$data_blokir['status_kehadiran']] ?? $data_blokir['status_kehadiran'];
+        $keterangan_blokir = $data_blokir['keterangan'] ? "<br><small>Keterangan: " . htmlspecialchars($data_blokir['keterangan']) . "</small>" : "";
+        $message = "<div class='alert alert-danger alert-dismissible fade show'>
+            <strong><i class='fas fa-ban me-1'></i> Tidak Dapat Mengisi Jurnal!</strong> 
+            Anda tercatat <strong>{$status_text}</strong> pada tanggal <strong>" . date('d/m/Y', strtotime($tanggal)) . "</strong>.{$keterangan_blokir}
+            <br><small class='text-muted'>Hubungi admin jika Anda merasa ini adalah kesalahan.</small>
+            <button type='button' class='btn-close' data-bs-dismiss='alert'></button>
+        </div>";
+    } else {
+
     // Validasi: Cek apakah tanggal tidak melebihi batas mundur
     $tanggal_input = new DateTime($tanggal);
     $tanggal_hari_ini = new DateTime(date('Y-m-d'));
@@ -189,6 +217,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['simpan_jurnal'])) {
         $message = "<div class='alert alert-danger'>Gagal menyimpan: " . $e->getMessage() . "</div>";
     }
     } // End validasi batas mundur tanggal
+    } // End validasi blokir guru
     } // End validasi hari libur
 }
 

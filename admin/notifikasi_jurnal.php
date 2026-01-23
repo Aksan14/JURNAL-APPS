@@ -2,11 +2,63 @@
 /*
 File: admin/notifikasi_jurnal.php
 Deskripsi: Notifikasi guru yang belum mengisi jurnal berdasarkan jadwal (hari & jam)
+          + Fitur blokir jurnal guru yang tidak hadir/sakit/izin/cuti
 */
 
 require_once '../config.php';
 require_once '../includes/auth_check.php';
 checkRole(['admin']);
+
+$message = '';
+
+// ============================================
+// LOGIKA SIMPAN BLOKIR GURU (Sakit/Izin/Cuti/Tidak Hadir)
+// ============================================
+if (isset($_POST['simpan_blokir'])) {
+    $id_guru = $_POST['id_guru'];
+    $tanggal = $_POST['tanggal_blokir'];
+    $status_kehadiran = $_POST['status_kehadiran'];
+    $keterangan = trim($_POST['keterangan']);
+    $admin_id = $_SESSION['user_id'];
+
+    try {
+        // Cek apakah sudah ada data untuk guru ini di tanggal tersebut
+        $stmt_check = $pdo->prepare("SELECT id FROM tbl_kehadiran_guru WHERE id_guru = ? AND tanggal = ?");
+        $stmt_check->execute([$id_guru, $tanggal]);
+        $existing = $stmt_check->fetch();
+
+        if ($existing) {
+            $stmt = $pdo->prepare("UPDATE tbl_kehadiran_guru SET status_kehadiran = ?, keterangan = ?, created_by = ? WHERE id = ?");
+            $stmt->execute([$status_kehadiran, $keterangan, $admin_id, $existing['id']]);
+        } else {
+            $stmt = $pdo->prepare("INSERT INTO tbl_kehadiran_guru (id_guru, tanggal, status_kehadiran, keterangan, created_by) VALUES (?, ?, ?, ?, ?)");
+            $stmt->execute([$id_guru, $tanggal, $status_kehadiran, $keterangan, $admin_id]);
+        }
+        $message = "<div class='alert alert-success alert-dismissible fade show'>
+            <i class='fas fa-check-circle me-1'></i> Status kehadiran guru berhasil disimpan! Guru tidak dapat mengisi jurnal pada tanggal tersebut.
+            <button type='button' class='btn-close' data-bs-dismiss='alert'></button>
+        </div>";
+    } catch (PDOException $e) {
+        $message = "<div class='alert alert-danger'>Error: " . htmlspecialchars($e->getMessage()) . "</div>";
+    }
+}
+
+// ============================================
+// LOGIKA HAPUS BLOKIR (Buka Blokir)
+// ============================================
+if (isset($_GET['buka_blokir'])) {
+    $id_blokir = $_GET['buka_blokir'];
+    try {
+        $stmt = $pdo->prepare("DELETE FROM tbl_kehadiran_guru WHERE id = ?");
+        $stmt->execute([$id_blokir]);
+        $redirect_tanggal = $_GET['tanggal'] ?? date('Y-m-d');
+        $redirect_view = $_GET['view'] ?? 'kelas';
+        header("Location: notifikasi_jurnal.php?tanggal={$redirect_tanggal}&view={$redirect_view}&status=unblocked");
+        exit;
+    } catch (PDOException $e) {
+        $message = "<div class='alert alert-danger'>Error: " . htmlspecialchars($e->getMessage()) . "</div>";
+    }
+}
 
 // Filter tanggal (default hari ini - pastikan selalu menggunakan server time)
 $hari_ini_server = date('Y-m-d'); // Tanggal hari ini di server
@@ -156,6 +208,31 @@ $sudah_isi = $stmt_sudah->fetchAll();
 $list_kelas = $pdo->query("SELECT id, nama_kelas FROM tbl_kelas ORDER BY nama_kelas ASC")->fetchAll();
 $list_guru = $pdo->query("SELECT id, nama_guru FROM tbl_guru ORDER BY nama_guru ASC")->fetchAll();
 
+// ============================================
+// AMBIL DATA GURU YANG DIBLOKIR PADA TANGGAL INI
+// ============================================
+$stmt_blokir = $pdo->prepare("
+    SELECT k.*, g.nama_guru, g.nip, u.username as admin_username
+    FROM tbl_kehadiran_guru k
+    JOIN tbl_guru g ON k.id_guru = g.id
+    LEFT JOIN tbl_users u ON k.created_by = u.id
+    WHERE k.tanggal = ?
+    ORDER BY g.nama_guru ASC
+");
+$stmt_blokir->execute([$tanggal_filter]);
+$guru_diblokir = $stmt_blokir->fetchAll();
+
+// Array id_guru yang diblokir untuk filter
+$id_guru_diblokir = array_column($guru_diblokir, 'id_guru');
+
+// Status label dan warna
+$status_blokir_labels = [
+    'tidak_hadir' => ['label' => 'Tidak Hadir', 'color' => 'danger', 'icon' => 'times-circle'],
+    'sakit' => ['label' => 'Sakit', 'color' => 'warning', 'icon' => 'medkit'],
+    'izin' => ['label' => 'Izin', 'color' => 'info', 'icon' => 'envelope'],
+    'cuti' => ['label' => 'Cuti', 'color' => 'secondary', 'icon' => 'plane']
+];
+
 // Statistik
 $total_jadwal_hari_ini = count($belum_isi) + count($sudah_isi);
 $total_belum_isi = count($belum_isi);
@@ -164,6 +241,9 @@ $persentase = $total_jadwal_hari_ini > 0 ? round(($total_sudah_isi / $total_jadw
 
 // View mode
 $view_mode = $_GET['view'] ?? 'kelas';
+
+// Hitung statistik blokir
+$total_guru_diblokir = count($guru_diblokir);
 
 require_once '../includes/header.php';
 ?>
@@ -229,6 +309,142 @@ require_once '../includes/header.php';
     border: none;
     border-radius: 15px;
 }
+/* ============================================
+   MODAL BLOKIR JURNAL - CLEAN VERSION
+   ============================================ */
+
+/* Modal Container */
+.modal-blokir-custom .modal-dialog {
+    max-width: 600px;
+    margin: 1.75rem auto;
+}
+
+.modal-blokir-custom .modal-content {
+    border: none;
+    border-radius: 10px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+}
+
+/* Modal Header */
+.modal-blokir-custom .modal-header {
+    background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+    color: white;
+    padding: 1.25rem 1.75rem;
+    border-bottom: none;
+    border-radius: 10px 10px 0 0;
+}
+
+.modal-blokir-custom .modal-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+/* Modal Body */
+.modal-blokir-custom .modal-body {
+    padding: 1.75rem;
+    background-color: #fff;
+}
+
+/* Alert Warning Box */
+.blokir-alert {
+    background: linear-gradient(135deg, #fff9e6 0%, #fff3cd 100%);
+    border-left: 4px solid #ffc107;
+    border-radius: 6px;
+    padding: 0.9rem 1rem;
+    margin-bottom: 1.5rem;
+    font-size: 0.9rem;
+    color: #856404;
+}
+
+.blokir-alert i {
+    color: #ffc107;
+    font-size: 1.1rem;
+    vertical-align: middle;
+}
+
+/* Info Card - Guru & Tanggal */
+.blokir-info-card {
+    background: #f8f9fa;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 1.25rem;
+    margin-bottom: 1.5rem;
+}
+
+.blokir-info-item {
+    margin-bottom: 1rem;
+}
+
+.blokir-info-item:last-child {
+    margin-bottom: 0;
+}
+
+.blokir-info-label {
+    display: block;
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: #6c757d;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin-bottom: 0.35rem;
+}
+
+.blokir-info-value {
+    display: block;
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: #212529;
+    line-height: 1.3;
+}
+
+/* Form Groups */
+.blokir-form-group {
+    margin-bottom: 1.25rem;
+}
+
+.blokir-form-label {
+    display: block;
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: #495057;
+    margin-bottom: 0.5rem;
+}
+
+.blokir-form-select,
+.blokir-form-textarea {
+    width: 100%;
+    padding: 0.7rem 0.9rem;
+    font-size: 0.95rem;
+    border: 2px solid #ced4da;
+    border-radius: 6px;
+    transition: all 0.2s;
+}
+
+.blokir-form-select:focus,
+.blokir-form-textarea:focus {
+    border-color: #dc3545;
+    outline: none;
+    box-shadow: 0 0 0 0.15rem rgba(220, 53, 69, 0.2);
+}
+
+.blokir-form-textarea {
+    resize: vertical;
+    font-family: inherit;
+}
+
+/* Modal Footer */
+.modal-blokir-custom .modal-footer {
+    background: #f8f9fa;
+    border-top: 1px solid #dee2e6;
+    padding: 1rem 1.75rem;
+    border-radius: 0 0 10px 10px;
+}
+
+.modal-blokir-custom .modal-footer .btn {
+    padding: 0.55rem 1.25rem;
+    font-weight: 500;
+    border-radius: 5px;
+}
 </style>
 
 <div class="container-fluid">
@@ -280,6 +496,17 @@ require_once '../includes/header.php';
         </div>
     </div>
     <?php endif; ?>
+
+    <?php 
+    // Tampilkan pesan sukses/error
+    if (isset($_GET['status']) && $_GET['status'] == 'unblocked') {
+        echo "<div class='alert alert-success alert-dismissible fade show'>
+            <i class='fas fa-check-circle me-1'></i> Blokir jurnal berhasil dihapus! Guru dapat kembali mengisi jurnal.
+            <button type='button' class='btn-close' data-bs-dismiss='alert'></button>
+        </div>";
+    }
+    echo $message; 
+    ?>
 
     <!-- Filter -->
     <div class="card shadow-sm mb-4">
@@ -386,6 +613,55 @@ require_once '../includes/header.php';
         </div>
     </div>
 
+    <!-- Section Guru Diblokir -->
+    <?php if (!empty($guru_diblokir)): ?>
+    <div class="card shadow-sm mb-4 border-left-warning" style="border-left: 4px solid #ffc107;">
+        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+            <h6 class="mb-0"><i class="fas fa-user-slash text-warning me-2"></i>Guru Tidak Masuk / Diblokir (<?= $total_guru_diblokir ?> orang)</h6>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-sm table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Nama Guru</th>
+                            <th>NIP</th>
+                            <th>Status</th>
+                            <th>Keterangan</th>
+                            <th width="80">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach($guru_diblokir as $gb): 
+                            $status_info = $status_blokir_labels[$gb['status_kehadiran']] ?? ['label' => $gb['status_kehadiran'], 'color' => 'secondary', 'icon' => 'question'];
+                        ?>
+                        <tr>
+                            <td><?= htmlspecialchars($gb['nama_guru']) ?></td>
+                            <td><small class="text-muted"><?= htmlspecialchars($gb['nip'] ?? '-') ?></small></td>
+                            <td>
+                                <span class="badge bg-<?= $status_info['color'] ?>">
+                                    <i class="fas fa-<?= $status_info['icon'] ?> me-1"></i>
+                                    <?= $status_info['label'] ?>
+                                </span>
+                            </td>
+                            <td><small><?= htmlspecialchars($gb['keterangan'] ?? '-') ?></small></td>
+                            <td>
+                                <a href="?buka_blokir=<?= $gb['id'] ?>&tanggal=<?= $tanggal_filter ?>&view=<?= $view_mode ?>" 
+                                   class="btn btn-sm btn-success" 
+                                   title="Buka Blokir - Guru bisa isi jurnal lagi"
+                                   onclick="return confirm('Yakin buka blokir? Guru akan dapat mengisi jurnal kembali.')">
+                                    <i class="fas fa-unlock"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <?php endif; ?>
+
     <?php if ($total_belum_isi == 0): ?>
     <div class="alert alert-success text-center py-4">
         <i class="fas fa-check-circle fa-3x mb-3"></i>
@@ -412,20 +688,112 @@ require_once '../includes/header.php';
                                 <th>Jam</th>
                                 <th>Mata Pelajaran</th>
                                 <th>Guru</th>
+                                <th width="60">Aksi</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <?php foreach($data['data'] as $item): ?>
-                            <tr>
+                            <?php foreach($data['data'] as $item): 
+                                $is_guru_blocked = in_array($item['id_guru'], $id_guru_diblokir);
+                            ?>
+                            <tr class="<?= $is_guru_blocked ? 'table-secondary' : '' ?>">
                                 <td><span class="jam-badge"><?= htmlspecialchars($item['jam_jadwal']) ?></span></td>
                                 <td><?= htmlspecialchars($item['nama_mapel']) ?></td>
                                 <td>
                                     <small><?= htmlspecialchars($item['nama_guru']) ?></small>
+                                    <?php if ($is_guru_blocked): ?>
+                                        <span class="badge bg-secondary ms-1"><i class="fas fa-ban"></i></span>
+                                    <?php endif; ?>
                                     <?php if ($item['nip']): ?>
                                         <br><small class="text-muted"><?= htmlspecialchars($item['nip']) ?></small>
                                     <?php endif; ?>
                                 </td>
+                                <td>
+                                    <?php if (!$is_guru_blocked): ?>
+                                    <button class="btn btn-sm btn-outline-danger" 
+                                            data-bs-toggle="modal" 
+                                            data-bs-target="#modalBlokirKelas<?= $item['id_guru'] ?>" 
+                                            title="Blokir guru ini">
+                                        <i class="fas fa-user-slash"></i>
+                                    </button>
+                                    <?php endif; ?>
+                                </td>
                             </tr>
+                            
+                            <!-- Modal Blokir untuk View Kelas -->
+                            <?php if (!$is_guru_blocked): ?>
+                            <div class="modal fade" id="modalBlokirKelas<?= $item['id_guru'] ?>" tabindex="-1">
+                                <div class="modal-dialog modal-dialog-centered" style="max-width: 550px;">
+                                    <form method="POST" style="margin: 0;">
+                                        <div class="modal-content" style="border: none; border-radius: 12px; overflow: hidden;">
+                                            <!-- HEADER -->
+                                            <div style="background: linear-gradient(135deg, #dc3545 0%, #c82333 100%); color: white; padding: 1.25rem 1.5rem; border-bottom: none;">
+                                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                                    <h5 style="margin: 0; font-size: 1.1rem; font-weight: 600;">
+                                                        <i class="fas fa-user-slash" style="margin-right: 0.5rem;"></i>Blokir Jurnal Guru
+                                                    </h5>
+                                                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" style="margin: 0;"></button>
+                                                </div>
+                                            </div>
+                                            
+                                            <!-- BODY -->
+                                            <div style="padding: 1.5rem; background: white;">
+                                                <!-- Alert -->
+                                                <div style="background: #fff9e6; border-left: 4px solid #ffc107; border-radius: 6px; padding: 0.85rem; margin-bottom: 1.25rem; color: #856404; font-size: 0.9rem;">
+                                                    <i class="fas fa-exclamation-triangle" style="color: #ffc107; margin-right: 0.5rem;"></i>
+                                                    <strong>Perhatian:</strong> Guru yang diblokir tidak akan bisa mengisi jurnal pada tanggal tersebut.
+                                                </div>
+                                                
+                                                <input type="hidden" name="id_guru" value="<?= $item['id_guru'] ?>">
+                                                <input type="hidden" name="tanggal_blokir" value="<?= $tanggal_filter ?>">
+                                                
+                                                <!-- Info Card -->
+                                                <div style="background: #f8f9fa; border: 1px solid #e0e0e0; border-radius: 8px; padding: 1.25rem; margin-bottom: 1.25rem;">
+                                                    <div style="margin-bottom: 1rem;">
+                                                        <div style="font-size: 0.65rem; font-weight: 700; color: #6c757d; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 0.35rem;">NAMA GURU</div>
+                                                        <div style="font-size: 1.25rem; font-weight: 700; color: #212529; line-height: 1.3;"><?= htmlspecialchars($item['nama_guru']) ?></div>
+                                                    </div>
+                                                    <div>
+                                                        <div style="font-size: 0.65rem; font-weight: 700; color: #6c757d; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 0.35rem;">TANGGAL</div>
+                                                        <div style="font-size: 1.25rem; font-weight: 700; color: #212529; line-height: 1.3;"><?= date('d F Y', strtotime($tanggal_filter)) ?></div>
+                                                    </div>
+                                                </div>
+                                                
+                                                <!-- Status Kehadiran -->
+                                                <div style="margin-bottom: 1.15rem;">
+                                                    <label style="display: block; font-weight: 600; font-size: 0.95rem; color: #495057; margin-bottom: 0.5rem;">
+                                                        Status Kehadiran <span style="color: #dc3545;">*</span>
+                                                    </label>
+                                                    <select name="status_kehadiran" required class="form-select" style="width: 100%; padding: 0.65rem 0.85rem; font-size: 0.95rem; border: 2px solid #ced4da; border-radius: 6px;">
+                                                        <option value="">-- Pilih Status --</option>
+                                                        <option value="tidak_hadir">Tidak Hadir</option>
+                                                        <option value="sakit">Sakit</option>
+                                                        <option value="izin">Izin</option>
+                                                        <option value="cuti">Cuti</option>
+                                                    </select>
+                                                </div>
+                                                
+                                                <!-- Keterangan -->
+                                                <div>
+                                                    <label style="display: block; font-weight: 600; font-size: 0.95rem; color: #495057; margin-bottom: 0.5rem;">Keterangan</label>
+                                                    <textarea name="keterangan" rows="3" class="form-control" placeholder="Contoh: Sakit demam, izin keluarga, dll" style="width: 100%; padding: 0.65rem 0.85rem; font-size: 0.95rem; border: 2px solid #ced4da; border-radius: 6px; resize: vertical;"></textarea>
+                                                </div>
+                                            </div>
+                                            
+                                            <!-- FOOTER -->
+                                            <div style="background: #f8f9fa; border-top: 1px solid #dee2e6; padding: 1rem 1.5rem; display: flex; justify-content: flex-end; gap: 0.75rem;">
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" style="padding: 0.5rem 1.15rem; font-weight: 500;">
+                                                    <i class="fas fa-times" style="margin-right: 0.4rem;"></i>Batal
+                                                </button>
+                                                <button type="submit" name="simpan_blokir" class="btn btn-danger" style="padding: 0.5rem 1.15rem; font-weight: 500;">
+                                                    <i class="fas fa-ban" style="margin-right: 0.4rem;"></i>Blokir Jurnal
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                            <?php endif; ?>
+                            
                             <?php endforeach; ?>
                         </tbody>
                     </table>
@@ -439,13 +807,27 @@ require_once '../includes/header.php';
     <!-- View Per Guru -->
     <h5 class="mb-3"><i class="fas fa-exclamation-triangle text-warning me-2"></i>Daftar Guru Belum Mengisi Jurnal</h5>
     <div class="row">
-        <?php foreach($belum_isi_per_guru as $guru => $data): ?>
+        <?php foreach($belum_isi_per_guru as $guru => $data): 
+            $is_blocked = in_array($data['id_guru'], $id_guru_diblokir);
+        ?>
         <div class="col-lg-4 col-md-6 mb-4">
-            <div class="card guru-card shadow-sm">
-                <div class="card-header bg-white">
-                    <h6 class="mb-0"><i class="fas fa-user text-warning me-2"></i><?= htmlspecialchars($guru) ?></h6>
-                    <?php if ($data['nip']): ?>
-                        <small class="text-muted">NIP: <?= htmlspecialchars($data['nip']) ?></small>
+            <div class="card guru-card shadow-sm <?= $is_blocked ? 'opacity-50' : '' ?>">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="mb-0"><i class="fas fa-user text-warning me-2"></i><?= htmlspecialchars($guru) ?></h6>
+                        <?php if ($data['nip']): ?>
+                            <small class="text-muted">NIP: <?= htmlspecialchars($data['nip']) ?></small>
+                        <?php endif; ?>
+                    </div>
+                    <?php if (!$is_blocked): ?>
+                    <button class="btn btn-sm btn-outline-danger" 
+                            data-bs-toggle="modal" 
+                            data-bs-target="#modalBlokir<?= $data['id_guru'] ?>" 
+                            title="Blokir - Guru tidak hadir">
+                        <i class="fas fa-user-slash"></i>
+                    </button>
+                    <?php else: ?>
+                    <span class="badge bg-secondary"><i class="fas fa-ban"></i> Diblokir</span>
                     <?php endif; ?>
                 </div>
                 <div class="card-body">
@@ -462,6 +844,82 @@ require_once '../includes/header.php';
                 </div>
             </div>
         </div>
+        
+        <!-- Modal Blokir Guru -->
+        <?php if (!$is_blocked): ?>
+        <div class="modal fade" id="modalBlokir<?= $data['id_guru'] ?>" tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered" style="max-width: 550px;">
+                <form method="POST" style="margin: 0;">
+                    <div class="modal-content" style="border: none; border-radius: 12px; overflow: hidden;">
+                        <!-- HEADER -->
+                        <div style="background: linear-gradient(135deg, #dc3545 0%, #c82333 100%); color: white; padding: 1.25rem 1.5rem; border-bottom: none;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <h5 style="margin: 0; font-size: 1.1rem; font-weight: 600;">
+                                    <i class="fas fa-user-slash" style="margin-right: 0.5rem;"></i>Blokir Jurnal Guru
+                                </h5>
+                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" style="margin: 0;"></button>
+                            </div>
+                        </div>
+                        
+                        <!-- BODY -->
+                        <div style="padding: 1.5rem; background: white;">
+                            <!-- Alert -->
+                            <div style="background: #fff9e6; border-left: 4px solid #ffc107; border-radius: 6px; padding: 0.85rem; margin-bottom: 1.25rem; color: #856404; font-size: 0.9rem;">
+                                <i class="fas fa-exclamation-triangle" style="color: #ffc107; margin-right: 0.5rem;"></i>
+                                <strong>Perhatian:</strong> Guru yang diblokir tidak akan bisa mengisi jurnal pada tanggal tersebut.
+                            </div>
+                            
+                            <input type="hidden" name="id_guru" value="<?= $data['id_guru'] ?>">
+                            <input type="hidden" name="tanggal_blokir" value="<?= $tanggal_filter ?>">
+                            
+                            <!-- Info Card -->
+                            <div style="background: #f8f9fa; border: 1px solid #e0e0e0; border-radius: 8px; padding: 1.25rem; margin-bottom: 1.25rem;">
+                                <div style="margin-bottom: 1rem;">
+                                    <div style="font-size: 0.65rem; font-weight: 700; color: #6c757d; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 0.35rem;">NAMA GURU</div>
+                                    <div style="font-size: 1.25rem; font-weight: 700; color: #212529; line-height: 1.3;"><?= htmlspecialchars($guru) ?></div>
+                                </div>
+                                <div>
+                                    <div style="font-size: 0.65rem; font-weight: 700; color: #6c757d; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 0.35rem;">TANGGAL</div>
+                                    <div style="font-size: 1.25rem; font-weight: 700; color: #212529; line-height: 1.3;"><?= date('d F Y', strtotime($tanggal_filter)) ?></div>
+                                </div>
+                            </div>
+                            
+                            <!-- Status Kehadiran -->
+                            <div style="margin-bottom: 1.15rem;">
+                                <label style="display: block; font-weight: 600; font-size: 0.95rem; color: #495057; margin-bottom: 0.5rem;">
+                                    Status Kehadiran <span style="color: #dc3545;">*</span>
+                                </label>
+                                <select name="status_kehadiran" required class="form-select" style="width: 100%; padding: 0.65rem 0.85rem; font-size: 0.95rem; border: 2px solid #ced4da; border-radius: 6px;">
+                                    <option value="">-- Pilih Status --</option>
+                                    <option value="tidak_hadir">🚫 Tidak Hadir</option>
+                                    <option value="sakit">🏥 Sakit</option>
+                                    <option value="izin">✉️ Izin</option>
+                                    <option value="cuti">✈️ Cuti</option>
+                                </select>
+                            </div>
+                            
+                            <!-- Keterangan -->
+                            <div>
+                                <label style="display: block; font-weight: 600; font-size: 0.95rem; color: #495057; margin-bottom: 0.5rem;">Keterangan</label>
+                                <textarea name="keterangan" rows="3" class="form-control" placeholder="Contoh: Sakit demam, izin keperluan keluarga, dll" style="width: 100%; padding: 0.65rem 0.85rem; font-size: 0.95rem; border: 2px solid #ced4da; border-radius: 6px; resize: vertical;"></textarea>
+                            </div>
+                        </div>
+                        
+                        <!-- FOOTER -->
+                        <div style="background: #f8f9fa; border-top: 1px solid #dee2e6; padding: 1rem 1.5rem; display: flex; justify-content: flex-end; gap: 0.75rem;">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" style="padding: 0.5rem 1.15rem; font-weight: 500;">
+                                <i class="fas fa-times" style="margin-right: 0.4rem;"></i>Batal
+                            </button>
+                            <button type="submit" name="simpan_blokir" class="btn btn-danger" style="padding: 0.5rem 1.15rem; font-weight: 500;">
+                                <i class="fas fa-ban" style="margin-right: 0.4rem;"></i>Blokir Jurnal
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <?php endif; ?>
+        
         <?php endforeach; ?>
     </div>
     <?php endif; ?>
@@ -522,5 +980,23 @@ require_once '../includes/header.php';
         </a>
     </div>
 </div>
+
+<script>
+// Ensure modal classes are applied on show
+document.addEventListener('DOMContentLoaded', function() {
+    const modals = document.querySelectorAll('[id^="modalBlokir"]');
+    
+    modals.forEach(function(modal) {
+        // Reset validation on close
+        modal.addEventListener('hidden.bs.modal', function() {
+            const form = this.querySelector('form');
+            if (form) {
+                form.reset();
+                form.classList.remove('was-validated');
+            }
+        });
+    });
+});
+</script>
 
 <?php require_once '../includes/footer.php'; ?>

@@ -283,6 +283,36 @@ $stmt_list_jam_khusus = $pdo->prepare("
 $stmt_list_jam_khusus->execute([$tanggal_mulai, $tanggal_selesai]);
 $daftar_jam_khusus_bulan = $stmt_list_jam_khusus->fetchAll();
 
+// Ambil data kehadiran guru (sakit, izin, cuti, tidak hadir) dalam bulan ini
+$stmt_kehadiran_guru = $pdo->prepare("
+    SELECT kg.id_guru, kg.tanggal, kg.status_kehadiran, kg.keterangan,
+           g.nama_guru,
+           DAYNAME(kg.tanggal) as hari_en
+    FROM tbl_kehadiran_guru kg
+    JOIN tbl_guru g ON kg.id_guru = g.id
+    WHERE kg.tanggal BETWEEN ? AND ?
+    ORDER BY kg.tanggal ASC, g.nama_guru ASC
+");
+$stmt_kehadiran_guru->execute([$tanggal_mulai, $tanggal_selesai]);
+$daftar_kehadiran_guru = $stmt_kehadiran_guru->fetchAll();
+
+// Hitung statistik kehadiran guru per guru
+$statistik_kehadiran_per_guru = [];
+foreach ($daftar_kehadiran_guru as $kh) {
+    $id_guru = $kh['id_guru'];
+    if (!isset($statistik_kehadiran_per_guru[$id_guru])) {
+        $statistik_kehadiran_per_guru[$id_guru] = [
+            'total_tidak_hadir' => 0,
+            'total_sakit' => 0,
+            'total_izin' => 0,
+            'total_cuti' => 0,
+            'total_hari' => 0
+        ];
+    }
+    $statistik_kehadiran_per_guru[$id_guru]['total_' . $kh['status_kehadiran']]++;
+    $statistik_kehadiran_per_guru[$id_guru]['total_hari']++;
+}
+
 // Daftar bulan untuk dropdown
 $daftar_bulan = [ '01'=>'Jan','02'=>'Feb','03'=>'Mar','04'=>'Apr','05'=>'Mei','06'=>'Jun','07'=>'Jul','08'=>'Agu','09'=>'Sep','10'=>'Okt','11'=>'Nov','12'=>'Des' ];
 
@@ -326,13 +356,19 @@ $daftar_bulan = [ '01'=>'Jan','02'=>'Feb','03'=>'Mar','04'=>'Apr','05'=>'Mei','0
             <small class="text-muted">(<?= $total_minggu_penuh ?> minggu)</small>
         </h4>
 
-        <?php if (count($daftar_libur_bulan) > 0 || count($daftar_jam_khusus_bulan) > 0): ?>
-        <div class="row mb-4">
+        <?php if (count($daftar_libur_bulan) > 0 || count($daftar_jam_khusus_bulan) > 0 || count($daftar_kehadiran_guru) > 0): ?>
+        <div class="row g-3 mb-4">
             <?php if (count($daftar_libur_bulan) > 0): ?>
-            <div class="col-md-6">
-                <div class="alert alert-warning border-left-warning mb-0">
-                    <h6 class="fw-bold mb-2"><i class="fas fa-calendar-times me-2"></i>Hari Libur Bulan Ini (<?= count($daftar_libur_bulan) ?>)</h6>
-                    <ul class="mb-0 small">
+            <div class="col-md-4">
+                <div class="alert alert-warning mb-0 h-100 shadow-sm" style="border-left: 4px solid #ffc107;">
+                    <div class="d-flex align-items-center mb-3">
+                        <i class="fas fa-calendar-times fa-2x me-3 text-warning"></i>
+                        <div>
+                            <h6 class="fw-bold mb-0">Hari Libur Bulan Ini</h6>
+                            <small class="text-muted"><?= count($daftar_libur_bulan) ?> hari</small>
+                        </div>
+                    </div>
+                    <ul class="mb-0 small" style="max-height: 200px; overflow-y: auto;">
                         <?php foreach ($daftar_libur_bulan as $libur): 
                             $hari_indo = $hari_mapping[$libur['hari_en']] ?? $libur['hari_en'];
                             $badge_jenis = match($libur['jenis']) {
@@ -341,14 +377,52 @@ $daftar_bulan = [ '01'=>'Jan','02'=>'Feb','03'=>'Mar','04'=>'Apr','05'=>'Mei','0
                                 default => 'bg-secondary'
                             };
                         ?>
-                            <li>
+                            <li class="mb-2">
                                 <strong><?= date('d', strtotime($libur['tanggal'])) ?></strong> (<?= $hari_indo ?>) - 
                                 <?= htmlspecialchars($libur['nama_libur']) ?>
-                                <span class="badge <?= $badge_jenis ?>"><?= ucfirst($libur['jenis']) ?></span>
+                                <br>
+                                <span class="badge <?= $badge_jenis ?> mt-1"><?= ucfirst($libur['jenis']) ?></span>
                                 <?php if ($libur['id_kelas']): ?>
-                                    <span class="badge bg-dark"><?= htmlspecialchars($libur['nama_kelas']) ?></span>
+                                    <span class="badge bg-dark mt-1"><?= htmlspecialchars($libur['nama_kelas']) ?></span>
                                 <?php else: ?>
-                                    <span class="badge bg-success">Semua Kelas</span>
+                                    <span class="badge bg-success mt-1">Semua Kelas</span>
+                                <?php endif; ?>
+                            </li>
+                        <?php endforeach; ?>
+                    </ul>
+                </div>
+            </div>
+            <?php endif; ?>
+            
+            <?php if (count($daftar_kehadiran_guru) > 0): ?>
+            <div class="col-md-4">
+                <div class="alert alert-danger mb-0 h-100 shadow-sm" style="border-left: 4px solid #dc3545;">
+                    <div class="d-flex align-items-center mb-3">
+                        <i class="fas fa-user-times fa-2x me-3 text-danger"></i>
+                        <div>
+                            <h6 class="fw-bold mb-0">Guru Tidak Hadir</h6>
+                            <small class="text-muted"><?= count($daftar_kehadiran_guru) ?> kejadian</small>
+                        </div>
+                    </div>
+                    <ul class="mb-0 small" style="max-height: 200px; overflow-y: auto;">
+                        <?php 
+                        $status_labels = [
+                            'tidak_hadir' => ['label' => 'Tidak Hadir', 'badge' => 'bg-danger'],
+                            'sakit' => ['label' => 'Sakit', 'badge' => 'bg-warning text-dark'],
+                            'izin' => ['label' => 'Izin', 'badge' => 'bg-info'],
+                            'cuti' => ['label' => 'Cuti', 'badge' => 'bg-secondary']
+                        ];
+                        foreach ($daftar_kehadiran_guru as $kh): 
+                            $hari_indo = $hari_mapping[$kh['hari_en']] ?? $kh['hari_en'];
+                            $status_info = $status_labels[$kh['status_kehadiran']];
+                        ?>
+                            <li class="mb-2">
+                                <strong><?= date('d', strtotime($kh['tanggal'])) ?></strong> (<?= $hari_indo ?>) - 
+                                <strong><?= htmlspecialchars($kh['nama_guru']) ?></strong>
+                                <br>
+                                <span class="badge <?= $status_info['badge'] ?> mt-1"><?= $status_info['label'] ?></span>
+                                <?php if ($kh['keterangan']): ?>
+                                    <br><small class="text-muted"><?= htmlspecialchars($kh['keterangan']) ?></small>
                                 <?php endif; ?>
                             </li>
                         <?php endforeach; ?>
@@ -358,21 +432,28 @@ $daftar_bulan = [ '01'=>'Jan','02'=>'Feb','03'=>'Mar','04'=>'Apr','05'=>'Mei','0
             <?php endif; ?>
             
             <?php if (count($daftar_jam_khusus_bulan) > 0): ?>
-            <div class="col-md-6">
-                <div class="alert alert-info border-left-info mb-0">
-                    <h6 class="fw-bold mb-2"><i class="fas fa-clock me-2"></i>Jam Khusus Bulan Ini (<?= count($daftar_jam_khusus_bulan) ?>)</h6>
-                    <ul class="mb-0 small">
+            <div class="col-md-4">
+                <div class="alert alert-info mb-0 h-100 shadow-sm" style="border-left: 4px solid #0dcaf0;">
+                    <div class="d-flex align-items-center mb-3">
+                        <i class="fas fa-clock fa-2x me-3 text-info"></i>
+                        <div>
+                            <h6 class="fw-bold mb-0">Jam Khusus Bulan Ini</h6>
+                            <small class="text-muted"><?= count($daftar_jam_khusus_bulan) ?> kejadian</small>
+                        </div>
+                    </div>
+                    <ul class="mb-0 small" style="max-height: 200px; overflow-y: auto;">
                         <?php foreach ($daftar_jam_khusus_bulan as $jk): 
                             $hari_indo = $hari_mapping[$jk['hari_en']] ?? $jk['hari_en'];
                         ?>
-                            <li>
+                            <li class="mb-2">
                                 <strong><?= date('d', strtotime($jk['tanggal'])) ?></strong> (<?= $hari_indo ?>) - 
                                 <?= htmlspecialchars($jk['alasan']) ?>
-                                <span class="badge bg-primary">Max <?= $jk['max_jam'] ?> jam</span>
+                                <br>
+                                <span class="badge bg-primary mt-1">Max <?= $jk['max_jam'] ?> jam</span>
                                 <?php if ($jk['id_kelas']): ?>
-                                    <span class="badge bg-dark"><?= htmlspecialchars($jk['nama_kelas']) ?></span>
+                                    <span class="badge bg-dark mt-1"><?= htmlspecialchars($jk['nama_kelas']) ?></span>
                                 <?php else: ?>
-                                    <span class="badge bg-success">Semua Kelas</span>
+                                    <span class="badge bg-success mt-1">Semua Kelas</span>
                                 <?php endif; ?>
                             </li>
                         <?php endforeach; ?>
@@ -404,10 +485,11 @@ $daftar_bulan = [ '01'=>'Jan','02'=>'Feb','03'=>'Mar','04'=>'Apr','05'=>'Mei','0
                     <tr>
                         <th rowspan="2" class="align-middle" style="width: 5%;">No</th>
                         <th rowspan="2" class="align-middle" style="width: 15%;">Nama Guru</th>
-                        <th rowspan="2" class="align-middle" style="width: 20%;">Mapel - Kelas</th>
+                        <th rowspan="2" class="align-middle" style="width: 18%;">Mapel - Kelas</th>
                         <th colspan="2" class="text-center">Jam Roster</th>
                         <th rowspan="2" class="align-middle">Libur/Jam Khusus</th>
                         <th colspan="2" class="text-center">Jam Bulan Ini</th>
+                        <th rowspan="2" class="align-middle" style="width: 8%;">Tidak Hadir</th>
                         <th rowspan="2" class="align-middle" style="width: 12%;">Total Rekap Guru</th>
                     </tr>
                     <tr>
@@ -419,7 +501,7 @@ $daftar_bulan = [ '01'=>'Jan','02'=>'Feb','03'=>'Mar','04'=>'Apr','05'=>'Mei','0
                 </thead>
                 <tbody>
                     <?php if (empty($hasil_rekap_detail)): ?>
-                        <tr><td colspan="9" class="text-center">Tidak ada data guru.</td></tr>
+                        <tr><td colspan="10" class="text-center">Tidak ada data guru.</td></tr>
                     <?php else: ?>
                         <?php $no = 1; foreach ($hasil_rekap_detail as $id_guru => $data_guru): ?>
                             <?php 
@@ -428,6 +510,9 @@ $daftar_bulan = [ '01'=>'Jan','02'=>'Feb','03'=>'Mar','04'=>'Apr','05'=>'Mei','0
                                 $total_selisih = $data_guru['total_jam_terlaksana_guru'] - $data_guru['total_jam_seharusnya_guru'];
                                 $total_selisih_text = ($total_selisih > 0 ? '+' : '') . $total_selisih;
                                 $total_selisih_color = $total_selisih >= 0 ? 'text-success' : 'text-danger';
+                                
+                                // Ambil statistik kehadiran guru
+                                $stat_kehadiran = $statistik_kehadiran_per_guru[$id_guru] ?? null;
                             ?>
                             
                             <?php if (empty($assignments)): ?>
@@ -436,6 +521,13 @@ $daftar_bulan = [ '01'=>'Jan','02'=>'Feb','03'=>'Mar','04'=>'Apr','05'=>'Mei','0
                                     <td class="text-center align-middle"><?php echo $no++; ?></td>
                                     <td class="align-middle"><?php echo htmlspecialchars($data_guru['nama_guru']); ?></td>
                                     <td colspan="6" class="text-center text-muted"><em>Tidak ada jadwal/jurnal</em></td>
+                                    <td class="text-center align-middle">
+                                        <?php if ($stat_kehadiran): ?>
+                                            <span class="badge bg-danger"><?= $stat_kehadiran['total_hari'] ?> hari</span>
+                                        <?php else: ?>
+                                            <span class="text-muted">-</span>
+                                        <?php endif; ?>
+                                    </td>
                                     <td class="text-center align-middle">Roster/Mg: 0</td>
                                 </tr>
                             <?php else: ?>
@@ -486,6 +578,32 @@ $daftar_bulan = [ '01'=>'Jan','02'=>'Feb','03'=>'Mar','04'=>'Apr','05'=>'Mei','0
                                         </td>
                                         <td class="text-center"><?php echo $assignment['jam_terlaksana_bulanan']; ?></td>
                                         <td class="text-center fw-bold <?php echo $selisih_color; ?>"><?php echo $selisih_text; ?></td>
+                                        
+                                        <?php if ($row_idx == 0): ?>
+                                            <td rowspan="<?php echo $rowspan; ?>" class="text-center align-middle">
+                                                <?php if ($stat_kehadiran): ?>
+                                                    <div class="mb-1">
+                                                        <span class="badge bg-danger" title="Total hari tidak hadir"><?= $stat_kehadiran['total_hari'] ?> hari</span>
+                                                    </div>
+                                                    <small style="font-size: 0.7rem;">
+                                                        <?php if ($stat_kehadiran['total_tidak_hadir'] > 0): ?>
+                                                            <span class="badge bg-danger">TH: <?= $stat_kehadiran['total_tidak_hadir'] ?></span>
+                                                        <?php endif; ?>
+                                                        <?php if ($stat_kehadiran['total_sakit'] > 0): ?>
+                                                            <span class="badge bg-warning text-dark">S: <?= $stat_kehadiran['total_sakit'] ?></span>
+                                                        <?php endif; ?>
+                                                        <?php if ($stat_kehadiran['total_izin'] > 0): ?>
+                                                            <span class="badge bg-info">I: <?= $stat_kehadiran['total_izin'] ?></span>
+                                                        <?php endif; ?>
+                                                        <?php if ($stat_kehadiran['total_cuti'] > 0): ?>
+                                                            <span class="badge bg-secondary">C: <?= $stat_kehadiran['total_cuti'] ?></span>
+                                                        <?php endif; ?>
+                                                    </small>
+                                                <?php else: ?>
+                                                    <span class="text-muted">-</span>
+                                                <?php endif; ?>
+                                            </td>
+                                        <?php endif; ?>
                                         
                                         <?php if ($row_idx == 0): ?>
                                             <td rowspan="<?php echo $rowspan; ?>" class="align-middle small">

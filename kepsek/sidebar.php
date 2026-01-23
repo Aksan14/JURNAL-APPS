@@ -60,6 +60,12 @@ global $current_page;
            <i class="fas fa-chart-bar"></i><span>Rekap Per Guru</span>
         </a>
     </li>
+    <li class="nav-item">
+        <a class="nav-link <?php echo ($current_page == 'laporan_kehadiran_guru.php') ? 'active' : ''; ?>"
+           href="<?php echo BASE_URL; ?>/kepsek/laporan_kehadiran_guru.php" title="Kehadiran Guru">
+           <i class="fas fa-user-clock"></i><span>Kehadiran Guru</span>
+        </a>
+    </li>
     
     <li class="nav-item-header">Akun</li>
     <li class="nav-item">
