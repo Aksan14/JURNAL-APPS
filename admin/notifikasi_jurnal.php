@@ -663,12 +663,12 @@ require_once '../includes/header.php';
                             </td>
                             <td><small><?= htmlspecialchars($gb['keterangan'] ?? '-') ?></small></td>
                             <td>
-                                <a href="?buka_blokir=<?= $gb['id'] ?>&tanggal=<?= $tanggal_filter ?>&view=<?= $view_mode ?>" 
+                                <button type="button" 
                                    class="btn btn-sm btn-success" 
                                    title="Buka Blokir - Guru bisa isi jurnal lagi"
-                                   onclick="return confirm('Yakin buka blokir? Guru akan dapat mengisi jurnal kembali.')">
+                                   onclick="konfirmasiBukaBlokir('<?= $gb['id'] ?>', '<?= $tanggal_filter ?>', '<?= $view_mode ?>', '<?= htmlspecialchars($gb['nama_guru']) ?>')">
                                     <i class="fas fa-unlock"></i>
-                                </a>
+                                </button>
                             </td>
                         </tr>
                         <?php endforeach; ?>
@@ -1014,6 +1014,40 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 });
+
+// Konfirmasi buka blokir dengan modal
+function konfirmasiBukaBlokir(id, tanggal, view, namaGuru) {
+    document.getElementById('bukaBlokir_namaGuru').textContent = namaGuru;
+    document.getElementById('bukaBlokir_link').href = '?buka_blokir=' + id + '&tanggal=' + tanggal + '&view=' + view;
+    var modal = new bootstrap.Modal(document.getElementById('modalKonfirmasiBukaBlokir'));
+    modal.show();
+}
 </script>
+
+<!-- Modal Konfirmasi Buka Blokir -->
+<div class="modal fade" id="modalKonfirmasiBukaBlokir" tabindex="-1" aria-labelledby="modalKonfirmasiBukaBlokir" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title"><i class="fas fa-unlock me-2"></i>Konfirmasi Buka Blokir</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center py-4">
+                <i class="fas fa-user-check fa-3x text-success mb-3"></i>
+                <p class="mb-2">Yakin ingin membuka blokir untuk guru:</p>
+                <h5 class="fw-bold text-dark" id="bukaBlokir_namaGuru"></h5>
+                <p class="text-muted small mt-3 mb-0">Guru akan dapat mengisi jurnal kembali pada tanggal tersebut.</p>
+            </div>
+            <div class="modal-footer justify-content-center">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i>Batal
+                </button>
+                <a href="#" id="bukaBlokir_link" class="btn btn-success">
+                    <i class="fas fa-unlock me-1"></i>Ya, Buka Blokir
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
 
 <?php require_once '../includes/footer.php'; ?>
