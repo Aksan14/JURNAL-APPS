@@ -22,22 +22,34 @@ if (isset($_POST['simpan_blokir'])) {
     $admin_id = $_SESSION['user_id'];
 
     try {
-        // Cek apakah sudah ada data untuk guru ini di tanggal tersebut
-        $stmt_check = $pdo->prepare("SELECT id FROM tbl_kehadiran_guru WHERE id_guru = ? AND tanggal = ?");
-        $stmt_check->execute([$id_guru, $tanggal]);
-        $existing = $stmt_check->fetch();
+        // Validasi: Cek apakah guru dengan id tersebut ada
+        $stmt_guru = $pdo->prepare("SELECT id, nama_guru FROM tbl_guru WHERE id = ?");
+        $stmt_guru->execute([$id_guru]);
+        $guru = $stmt_guru->fetch();
 
-        if ($existing) {
-            $stmt = $pdo->prepare("UPDATE tbl_kehadiran_guru SET status_kehadiran = ?, keterangan = ?, created_by = ? WHERE id = ?");
-            $stmt->execute([$status_kehadiran, $keterangan, $admin_id, $existing['id']]);
+        if (!$guru) {
+            $message = "<div class='alert alert-danger alert-dismissible fade show'>
+                <i class='fas fa-exclamation-circle me-1'></i> Error: Guru tidak ditemukan!
+                <button type='button' class='btn-close' data-bs-dismiss='alert'></button>
+            </div>";
         } else {
-            $stmt = $pdo->prepare("INSERT INTO tbl_kehadiran_guru (id_guru, tanggal, status_kehadiran, keterangan, created_by) VALUES (?, ?, ?, ?, ?)");
-            $stmt->execute([$id_guru, $tanggal, $status_kehadiran, $keterangan, $admin_id]);
+            // Cek apakah sudah ada data untuk guru ini di tanggal tersebut
+            $stmt_check = $pdo->prepare("SELECT id FROM tbl_kehadiran_guru WHERE id_guru = ? AND tanggal = ?");
+            $stmt_check->execute([$id_guru, $tanggal]);
+            $existing = $stmt_check->fetch();
+
+            if ($existing) {
+                $stmt = $pdo->prepare("UPDATE tbl_kehadiran_guru SET status_kehadiran = ?, keterangan = ?, created_by = ? WHERE id = ?");
+                $stmt->execute([$status_kehadiran, $keterangan, $admin_id, $existing['id']]);
+            } else {
+                $stmt = $pdo->prepare("INSERT INTO tbl_kehadiran_guru (id_guru, tanggal, status_kehadiran, keterangan, created_by) VALUES (?, ?, ?, ?, ?)");
+                $stmt->execute([$id_guru, $tanggal, $status_kehadiran, $keterangan, $admin_id]);
+            }
+            $message = "<div class='alert alert-success alert-dismissible fade show'>
+                <i class='fas fa-check-circle me-1'></i> Status kehadiran guru berhasil disimpan! Guru tidak dapat mengisi jurnal pada tanggal tersebut.
+                <button type='button' class='btn-close' data-bs-dismiss='alert'></button>
+            </div>";
         }
-        $message = "<div class='alert alert-success alert-dismissible fade show'>
-            <i class='fas fa-check-circle me-1'></i> Status kehadiran guru berhasil disimpan! Guru tidak dapat mengisi jurnal pada tanggal tersebut.
-            <button type='button' class='btn-close' data-bs-dismiss='alert'></button>
-        </div>";
     } catch (PDOException $e) {
         $message = "<div class='alert alert-danger'>Error: " . htmlspecialchars($e->getMessage()) . "</div>";
     }
@@ -115,6 +127,7 @@ if (!empty($filter_guru)) {
 $where_clause = implode(" AND ", $where_conditions);
 
 // Query: Jadwal yang BELUM diisi jurnal berdasarkan hari ini
+// Tidak termasuk guru yang sudah ditandai tidak masuk (sakit/izin/cuti/tidak_hadir)
 $sql_belum_isi = "
     SELECT 
         m.id as id_mengajar,
@@ -136,10 +149,14 @@ $sql_belum_isi = "
     AND m.id NOT IN (
         SELECT id_mengajar FROM tbl_jurnal WHERE tanggal = ?
     )
+    AND g.id NOT IN (
+        SELECT id_guru FROM tbl_kehadiran_guru WHERE tanggal = ?
+    )
     ORDER BY k.nama_kelas ASC, m.jam_ke ASC, g.nama_guru ASC
 ";
 
 $params[] = $tanggal_filter;
+$params[] = $tanggal_filter; // Parameter untuk filter kehadiran guru
 $stmt_belum = $pdo->prepare($sql_belum_isi);
 $stmt_belum->execute($params);
 $belum_isi = $stmt_belum->fetchAll();
@@ -617,7 +634,7 @@ require_once '../includes/header.php';
     <?php if (!empty($guru_diblokir)): ?>
     <div class="card shadow-sm mb-4 border-left-warning" style="border-left: 4px solid #ffc107;">
         <div class="card-header bg-white d-flex justify-content-between align-items-center">
-            <h6 class="mb-0"><i class="fas fa-user-slash text-warning me-2"></i>Guru Tidak Masuk / Diblokir (<?= $total_guru_diblokir ?> orang)</h6>
+            <h6 class="mb-0"><i class="fas fa-user-slash text-warning me-2"></i>Guru Tidak Masuk (<?= $total_guru_diblokir ?> orang)</h6>
         </div>
         <div class="card-body p-0">
             <div class="table-responsive">

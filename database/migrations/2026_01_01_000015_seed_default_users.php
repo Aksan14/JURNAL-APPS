@@ -10,8 +10,7 @@ class SeedDefaultUsers extends Migration
 {
     public function up()
     {
-        // Password: password (untuk admin)
-        // Password: kepsek123 (untuk kepsek)
+
         $sql = "INSERT INTO tbl_users (username, password_hash, role) VALUES 
             ('admin', '\$2y\$10\$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'admin'),
             ('kepsek', '\$2y\$10\$nbmZa6UbB9/PldYpdtLnSOH89.sFjI4UHRNPY0O4z/w0iPvVxNKe6', 'kepsek')

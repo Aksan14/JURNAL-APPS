@@ -11,6 +11,7 @@ class CreateViews extends Migration
     public function up()
     {
         // View: v_jadwal_belum_isi_jurnal
+        // Tidak termasuk guru yang sudah ditandai tidak masuk
         $sql1 = "CREATE OR REPLACE VIEW v_jadwal_belum_isi_jurnal AS
             SELECT 
                 m.id as id_mengajar,
@@ -39,6 +40,9 @@ class CreateViews extends Migration
             END
             AND m.id NOT IN (
                 SELECT id_mengajar FROM tbl_jurnal WHERE tanggal = CURDATE()
+            )
+            AND g.id NOT IN (
+                SELECT id_guru FROM tbl_kehadiran_guru WHERE tanggal = CURDATE()
             )";
 
         // View: v_rekap_jurnal_guru

@@ -1,11 +1,9 @@
------------------ MIGRATIONS -------------------
+- Jalankan migration untuk membuat tabel
+```
+cd c:\xampp\htdocs\jurnal_app
+c:\xampp\php\php.exe database/migrate.php
+```
 
-UNTUK MIGRASI DATABASE 
-
-JIKA PHP SUDAH ADA
+Atau jika PHP sudah ada di PATH:
+```
 php database/migrate.php
-
-Jika php tidak terdaftar maka
-run dengan path lengkap :
-
- C:\xampp\php\php.exe .\database\migrate.php
