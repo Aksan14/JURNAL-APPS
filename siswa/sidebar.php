@@ -1,7 +1,7 @@
 <?php
 /*
 File: siswa/sidebar.php
-YouTube Style Dark Sidebar
+Professional Blue Navy Sidebar - Siswa
 */
 global $current_page, $user_role;
 ?>

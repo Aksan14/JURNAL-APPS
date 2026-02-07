@@ -1,7 +1,7 @@
 <?php
 /*
 File: guru/sidebar.php
-YouTube Style Dark Sidebar
+Professional Blue Navy Sidebar - Guru/Walikelas
 */
 global $current_page, $user_role, $pdo;
 

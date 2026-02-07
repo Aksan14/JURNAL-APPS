@@ -421,10 +421,10 @@ require_once '../includes/header.php';
         border: 2px solid #dee2e6;
         transition: all 0.2s;
     }
-    .kehadiran-radio input[value="H"]:checked + label { background-color: #198754; color: white; border-color: #198754; }
-    .kehadiran-radio input[value="S"]:checked + label { background-color: #ffc107; color: black; border-color: #ffc107; }
-    .kehadiran-radio input[value="I"]:checked + label { background-color: #0dcaf0; color: black; border-color: #0dcaf0; }
-    .kehadiran-radio input[value="A"]:checked + label { background-color: #dc3545; color: white; border-color: #dc3545; }
+    .kehadiran-radio input[value="H"]:checked + label { background-color: #66BB6A; color: white; border-color: #66BB6A; }
+    .kehadiran-radio input[value="S"]:checked + label { background-color: #FFB74D; color: white; border-color: #FFB74D; }
+    .kehadiran-radio input[value="I"]:checked + label { background-color: #4DD0E1; color: white; border-color: #4DD0E1; }
+    .kehadiran-radio input[value="A"]:checked + label { background-color: #EF5350; color: white; border-color: #EF5350; }
     
     @media (max-width: 768px) {
         .table-riwayat th, .table-riwayat td { font-size: 0.8rem; padding: 0.5rem; }
@@ -817,7 +817,7 @@ function generateTanggalOptions(hariJadwal, idMengajar) {
         warnOption.value = '';
         warnOption.textContent = '⚠️ Semua tanggal dalam range adalah hari libur';
         warnOption.disabled = true;
-        warnOption.style.color = '#dc3545';
+        warnOption.style.color = '#EF5350';
         selectTanggal.appendChild(warnOption);
     }
     
@@ -863,7 +863,7 @@ function generateTanggalOptions(hariJadwal, idMengajar) {
             option.value = '';
             option.textContent = '🔴 ' + dayName + ', ' + displayDate + ' - ' + item.info.nama;
             option.disabled = true;
-            option.style.color = '#dc3545';
+            option.style.color = '#EF5350';
             liburGroup.appendChild(option);
         });
         

@@ -1,435 +1,966 @@
 /*
 File: style.css
-YouTube Style Theme - Jurnal App
+SMA Integral Theme - Professional Soft Blue
+Modern Soft Color Theme for School Information System
 */
+
+/* ============================================
+   CSS VARIABLES
+   ============================================ */
+:root {
+    --primary: #5C9CE5;
+    --primary-dark: #4A8AD4;
+    --primary-light: #7EB3F0;
+    --primary-lighter: #A8CFFF;
+    --secondary: #78909C;
+    --accent: #64B5F6;
+    
+    --success: #66BB6A;
+    --warning: #FFB74D;
+    --danger: #EF5350;
+    --info: #4DD0E1;
+    
+    --bg-main: #f5f7fa;
+    --bg-card: #ffffff;
+    --bg-sidebar: #5C9CE5;
+    --bg-navbar: #ffffff;
+    
+    --text-primary: #37474F;
+    --text-secondary: #607D8B;
+    --text-muted: #90A4AE;
+    --text-light: #f8f9fa;
+    --text-white: #ffffff;
+    
+    --border-color: #E0E6ED;
+    --border-radius: 8px;
+    --border-radius-lg: 12px;
+    --border-radius-xl: 16px;
+    
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06);
+    --shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.1);
+    
+    --transition: all 0.25s ease;
+    --font-primary: 'Poppins', -apple-system, BlinkMacSystemFont, sans-serif;
+}
 
 /* ============================================
    BASE STYLES
    ============================================ */
 * {
-  font-family: 'Roboto', -apple-system, BlinkMacSystemFont, sans-serif;
-  box-sizing: border-box;
+    font-family: var(--font-primary);
+    box-sizing: border-box;
 }
 
 body {
-  background-color: #f5f5f5;
-  margin: 0;
-  padding: 0;
+    background-color: var(--bg-main);
+    color: var(--text-primary);
+    margin: 0;
+    padding: 0;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+a {
+    text-decoration: none;
+    color: var(--primary);
+    transition: var(--transition);
+}
+
+a:hover {
+    color: var(--primary-light);
 }
 
 /* ============================================
-   CARDS - YouTube Style
+   CARDS
    ============================================ */
 .card {
-  border: none;
-  border-radius: 12px;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.1);
-  transition: box-shadow 0.2s ease;
+    border: none;
+    border-radius: var(--border-radius-lg);
+    box-shadow: var(--shadow-sm);
+    background: var(--bg-card);
+    transition: var(--transition);
+    overflow: hidden;
 }
 
 .card:hover {
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    box-shadow: var(--shadow);
 }
 
 .card-header {
-  background-color: #fff;
-  border-bottom: 1px solid #e5e5e5;
-  border-radius: 12px 12px 0 0 !important;
-  font-weight: 500;
+    background-color: var(--bg-card);
+    border-bottom: 1px solid var(--border-color);
+    font-weight: 600;
+    padding: 18px 24px;
+    color: var(--text-primary);
+}
+
+.card-header.bg-primary {
+    background: var(--primary) !important;
+    color: var(--text-white);
+    border-bottom: none;
+}
+
+.card-header.bg-dark {
+    background: var(--primary) !important;
+    color: var(--text-white);
+    border-bottom: none;
+}
+
+.bg-dark {
+    background: var(--primary-dark) !important;
 }
 
 .card-body {
-  padding: 1.25rem;
+    padding: 24px;
+}
+
+.card-footer {
+    background-color: #fafbfc;
+    border-top: 1px solid var(--border-color);
+    padding: 16px 24px;
 }
 
 /* Card Border Left Variants */
 .border-left-primary {
-  border-left: 4px solid #cc0000 !important;
+    border-left: 4px solid var(--primary) !important;
 }
 
 .border-left-success {
-  border-left: 4px solid #1cc88a !important;
+    border-left: 4px solid var(--success) !important;
 }
 
 .border-left-info {
-  border-left: 4px solid #36b9cc !important;
+    border-left: 4px solid var(--info) !important;
 }
 
 .border-left-warning {
-  border-left: 4px solid #f6c23e !important;
+    border-left: 4px solid var(--warning) !important;
 }
 
 .border-left-danger {
-  border-left: 4px solid #e74a3b !important;
+    border-left: 4px solid var(--danger) !important;
 }
 
 /* ============================================
-   BUTTONS - YouTube Style
+   BUTTONS
    ============================================ */
 .btn {
-  border-radius: 20px;
-  font-weight: 500;
-  font-size: 14px;
-  padding: 8px 16px;
-  transition: all 0.2s ease;
+    border-radius: var(--border-radius);
+    font-weight: 500;
+    font-size: 14px;
+    padding: 10px 20px;
+    transition: var(--transition);
+    border: none;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
 }
 
 .btn-primary {
-  background-color: #cc0000;
-  border-color: #cc0000;
+    background: var(--primary);
+    color: var(--text-white);
 }
 
-.btn-primary:hover {
-  background-color: #aa0000;
-  border-color: #aa0000;
+.btn-primary:hover, .btn-primary:focus {
+    background: var(--primary-dark);
+    color: var(--text-white);
+    box-shadow: 0 4px 12px rgba(33, 150, 243, 0.4);
+}
+
+.btn-secondary {
+    background: var(--text-secondary);
+    color: var(--text-white);
+}
+
+.btn-secondary:hover {
+    background: #4a5a75;
+    color: var(--text-white);
+}
+
+.btn-success {
+    background: var(--success);
+    color: var(--text-white);
+}
+
+.btn-success:hover {
+    background: #1b5e20;
+    color: var(--text-white);
+}
+
+.btn-danger {
+    background: var(--danger);
+    color: var(--text-white);
+}
+
+.btn-danger:hover {
+    background: #b71c1c;
+    color: var(--text-white);
+}
+
+.btn-warning {
+    background: var(--warning);
+    color: var(--text-white);
+}
+
+.btn-warning:hover {
+    background: #e65100;
+    color: var(--text-white);
+}
+
+.btn-info {
+    background: var(--info);
+    color: var(--text-white);
+}
+
+.btn-info:hover {
+    background: #01579b;
+    color: var(--text-white);
+}
+
+.btn-light {
+    background: #f5f7fa;
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+}
+
+.btn-light:hover {
+    background: #e8ecf1;
+    color: var(--text-primary);
+}
+
+.btn-dark {
+    background: var(--primary-dark);
+    color: var(--text-white);
+}
+
+.btn-dark:hover {
+    background: #060a21;
+    color: var(--text-white);
 }
 
 .btn-outline-primary {
-  color: #cc0000;
-  border-color: #cc0000;
+    color: var(--primary);
+    border: 2px solid var(--primary);
+    background: transparent;
 }
 
 .btn-outline-primary:hover {
-  background-color: #cc0000;
-  border-color: #cc0000;
-  color: #fff;
+    background: var(--primary);
+    color: var(--text-white);
+}
+
+.btn-outline-secondary {
+    color: var(--text-secondary);
+    border: 2px solid var(--text-secondary);
+    background: transparent;
+}
+
+.btn-outline-secondary:hover {
+    background: var(--text-secondary);
+    color: var(--text-white);
 }
 
 .btn-sm {
-  padding: 5px 12px;
-  font-size: 13px;
-  border-radius: 16px;
+    padding: 6px 14px;
+    font-size: 13px;
+}
+
+.btn-lg {
+    padding: 14px 32px;
+    font-size: 16px;
 }
 
 /* ============================================
-   FORMS - YouTube Style
+   FORMS
    ============================================ */
-.form-control, .form-select {
-  border-radius: 8px;
-  border: 1px solid #ccc;
-  padding: 10px 12px;
-  font-size: 14px;
-  transition: border-color 0.2s, box-shadow 0.2s;
+.form-control {
+    border-radius: var(--border-radius);
+    border: 1px solid var(--border-color);
+    padding: 10px 14px;
+    font-size: 14px;
+    transition: var(--transition);
+    background-color: #fff;
+    color: var(--text-primary);
+}
+
+.form-select {
+    border-radius: var(--border-radius);
+    border: 1px solid var(--border-color);
+    padding-top: 10px;
+    padding-bottom: 10px;
+    padding-left: 14px;
+    padding-right: 2.5rem;
+    font-size: 14px;
+    transition: var(--transition);
+    background-color: #fff;
+    color: var(--text-primary);
+    line-height: 1.5;
+    height: auto;
+    min-height: 42px;
+}
+
+.form-control:hover, .form-select:hover {
+    border-color: #c8d0dc;
 }
 
 .form-control:focus, .form-select:focus {
-  border-color: #cc0000;
-  box-shadow: 0 0 0 2px rgba(204, 0, 0, 0.1);
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(92, 156, 229, 0.2);
+    outline: none;
+}
+
+/* Small form controls */
+.form-control-sm {
+    padding: 6px 10px;
+    font-size: 13px;
+    min-height: auto;
+}
+
+.form-select-sm {
+    padding-top: 6px;
+    padding-bottom: 6px;
+    padding-left: 10px;
+    padding-right: 2rem;
+    font-size: 13px;
+    line-height: 1.5;
+    min-height: 32px;
+    height: auto;
+}
+
+.form-control::placeholder {
+    color: var(--text-muted);
 }
 
 .form-label {
-  font-weight: 500;
-  font-size: 14px;
-  color: #606060;
-  margin-bottom: 6px;
+    font-weight: 500;
+    font-size: 14px;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+}
+
+.form-text {
+    color: var(--text-muted);
+    font-size: 13px;
+}
+
+.input-group-text {
+    background-color: #f5f7fa;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    color: var(--text-secondary);
 }
 
 /* ============================================
-   TABLES - YouTube Style
+   TABLES
    ============================================ */
 .table {
-  border-radius: 8px;
-  overflow: hidden;
+    border-radius: var(--border-radius);
+    overflow: hidden;
+    margin-bottom: 0;
 }
 
 .table thead th {
-  background-color: #212121;
-  color: #fff;
-  font-weight: 500;
-  font-size: 13px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  padding: 12px 15px;
-  border: none;
+    background: var(--primary);
+    color: var(--text-white);
+    font-weight: 600;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 16px 18px;
+    border: none;
+    white-space: nowrap;
 }
 
 .table tbody td {
-  padding: 12px 15px;
-  vertical-align: middle;
-  border-bottom: 1px solid #e5e5e5;
+    padding: 16px 18px;
+    vertical-align: middle;
+    border-bottom: 1px solid var(--border-color);
+    color: var(--text-primary);
+}
+
+.table tbody tr:last-child td {
+    border-bottom: none;
 }
 
 .table tbody tr:hover {
-  background-color: #f9f9f9;
+    background-color: rgba(33, 150, 243, 0.05);
 }
 
 .table-striped tbody tr:nth-of-type(odd) {
-  background-color: #fafafa;
+    background-color: #fafbfc;
+}
+
+.table-striped tbody tr:nth-of-type(odd):hover {
+    background-color: rgba(33, 150, 243, 0.08);
 }
 
 .table-dark th {
-  background-color: #212121 !important;
+    background: var(--primary) !important;
 }
 
 /* ============================================
-   BADGES - YouTube Style
+   BADGES
    ============================================ */
 .badge {
-  font-weight: 500;
-  padding: 5px 10px;
-  border-radius: 12px;
-  font-size: 12px;
+    font-weight: 500;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    letter-spacing: 0.3px;
+}
+
+.badge.bg-primary {
+    background: var(--primary) !important;
+}
+
+.badge.bg-success {
+    background: var(--success) !important;
+}
+
+.badge.bg-warning {
+    background: var(--warning) !important;
+    color: var(--text-white) !important;
+}
+
+.badge.bg-danger {
+    background: var(--danger) !important;
+}
+
+.badge.bg-info {
+    background: var(--info) !important;
+}
+
+.badge.bg-secondary {
+    background: var(--text-secondary) !important;
 }
 
 .badge.fs-6 {
-  font-size: 0.9rem !important;
+    font-size: 0.85rem !important;
 }
 
 /* ============================================
-   ALERTS - YouTube Style
+   ALERTS
    ============================================ */
 .alert {
-  border-radius: 12px;
-  border: none;
-  padding: 16px 20px;
+    border-radius: var(--border-radius);
+    border: none;
+    padding: 16px 20px;
+    font-size: 14px;
 }
 
-.alert-warning {
-  background-color: #fff3cd;
-  color: #856404;
+.alert-primary {
+    background: rgba(33, 150, 243, 0.1);
+    color: var(--primary-dark);
+    border-left: 4px solid var(--primary);
 }
 
 .alert-success {
-  background-color: #d4edda;
-  color: #155724;
+    background: rgba(76, 175, 80, 0.1);
+    color: var(--success);
+    border-left: 4px solid var(--success);
+}
+
+.alert-warning {
+    background: rgba(255, 152, 0, 0.1);
+    color: #e65100;
+    border-left: 4px solid var(--warning);
 }
 
 .alert-danger {
-  background-color: #f8d7da;
-  color: #721c24;
+    background: rgba(244, 67, 54, 0.1);
+    color: var(--danger);
+    border-left: 4px solid var(--danger);
 }
 
 .alert-info {
-  background-color: #d1ecf1;
-  color: #0c5460;
+    background: rgba(2, 119, 189, 0.1);
+    color: var(--info);
+    border-left: 4px solid var(--info);
 }
 
 /* ============================================
-   MODAL - YouTube Style
+   MODAL
    ============================================ */
 .modal-content {
-  border-radius: 16px;
-  border: none;
-  box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+    border-radius: var(--border-radius-xl);
+    border: none;
+    box-shadow: var(--shadow-lg);
+    overflow: hidden;
 }
 
 .modal-header {
-  border-bottom: 1px solid #e5e5e5;
-  padding: 16px 20px;
+    border-bottom: 1px solid var(--border-color);
+    padding: 20px 24px;
+}
+
+.modal-header.bg-primary {
+    background: var(--primary) !important;
+    color: var(--text-white);
+}
+
+.modal-header.bg-success {
+    background: var(--success) !important;
+    color: var(--text-white);
+}
+
+.modal-header.bg-danger {
+    background: var(--danger) !important;
+    color: var(--text-white);
+}
+
+.modal-header.bg-warning {
+    background: var(--warning) !important;
+    color: var(--text-white);
 }
 
 .modal-title {
-  font-weight: 500;
-  font-size: 18px;
+    font-weight: 600;
+    font-size: 18px;
 }
 
 .modal-body {
-  padding: 20px;
+    padding: 24px;
 }
 
 .modal-footer {
-  border-top: 1px solid #e5e5e5;
-  padding: 16px 20px;
+    border-top: 1px solid var(--border-color);
+    padding: 16px 24px;
 }
 
 /* ============================================
    TYPOGRAPHY
    ============================================ */
 h1, h2, h3, h4, h5, h6 {
-  font-weight: 500;
-  color: #212121;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
 }
 
-.h3 {
-  font-size: 1.5rem;
+h1 { font-size: 2rem; }
+h2 { font-size: 1.75rem; }
+h3 { font-size: 1.5rem; }
+h4 { font-size: 1.25rem; }
+h5 { font-size: 1.1rem; }
+h6 { font-size: 1rem; }
+
+.text-primary { color: var(--primary) !important; }
+.text-secondary { color: var(--text-secondary) !important; }
+.text-success { color: var(--success) !important; }
+.text-danger { color: var(--danger) !important; }
+.text-warning { color: var(--warning) !important; }
+.text-info { color: var(--info) !important; }
+.text-muted { color: var(--text-muted) !important; }
+.text-dark { color: var(--text-primary) !important; }
+
+.text-gray-300 { color: #cbd5e1 !important; }
+.text-gray-800 { color: var(--text-primary) !important; }
+
+.text-xs { font-size: 0.75rem; }
+.text-sm { font-size: 0.875rem; }
+
+.font-weight-bold, .fw-bold { font-weight: 600 !important; }
+.font-weight-semibold { font-weight: 500 !important; }
+
+/* ============================================
+   PROGRESS BAR
+   ============================================ */
+.progress {
+    height: 10px;
+    border-radius: 5px;
+    background-color: #e8ecf1;
+    overflow: hidden;
 }
 
-.text-primary {
-  color: #cc0000 !important;
+.progress-bar {
+    border-radius: 5px;
+    background: var(--primary);
 }
 
-.text-success {
-  color: #1cc88a !important;
+/* ============================================
+   DROPDOWN
+   ============================================ */
+.dropdown-menu {
+    border-radius: var(--border-radius-lg);
+    border: 1px solid var(--border-color);
+    box-shadow: var(--shadow-lg);
+    padding: 8px;
+    margin-top: 8px;
 }
 
-.text-gray-300 {
-  color: #dddfeb !important;
+.dropdown-item {
+    padding: 10px 16px;
+    font-size: 14px;
+    border-radius: var(--border-radius);
+    transition: var(--transition);
+    color: var(--text-primary);
 }
 
-.text-gray-800 {
-  color: #212121 !important;
+.dropdown-item:hover {
+    background-color: rgba(33, 150, 243, 0.1);
+    color: var(--primary);
 }
 
-.text-xs {
-  font-size: 0.75rem;
+.dropdown-item.text-danger:hover {
+    background-color: rgba(244, 67, 54, 0.1);
+    color: var(--danger);
 }
 
-.text-muted {
-  color: #606060 !important;
+.dropdown-divider {
+    border-color: var(--border-color);
+    margin: 8px 0;
 }
 
-.font-weight-bold {
-  font-weight: 500 !important;
+/* ============================================
+   PAGINATION
+   ============================================ */
+.pagination .page-link {
+    border-radius: var(--border-radius);
+    margin: 0 3px;
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    padding: 10px 16px;
+    transition: var(--transition);
+}
+
+.pagination .page-link:hover {
+    background-color: rgba(33, 150, 243, 0.1);
+    border-color: var(--primary);
+    color: var(--primary);
+}
+
+.pagination .page-item.active .page-link {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: var(--text-white);
+}
+
+.pagination .page-item.disabled .page-link {
+    color: var(--text-muted);
+    background-color: #fafbfc;
+}
+
+/* ============================================
+   LIST GROUP
+   ============================================ */
+.list-group-item {
+    border: none;
+    border-bottom: 1px solid var(--border-color);
+    padding: 16px 20px;
+    color: var(--text-primary);
+    transition: var(--transition);
+}
+
+.list-group-item:last-child {
+    border-bottom: none;
+}
+
+.list-group-item:hover {
+    background-color: rgba(33, 150, 243, 0.05);
+}
+
+/* ============================================
+   NAV PILLS/TABS
+   ============================================ */
+.nav-pills .nav-link {
+    border-radius: var(--border-radius);
+    color: var(--text-secondary);
+    font-weight: 500;
+    padding: 12px 20px;
+    transition: var(--transition);
+}
+
+.nav-pills .nav-link:hover {
+    background-color: rgba(33, 150, 243, 0.1);
+    color: var(--primary);
+}
+
+.nav-pills .nav-link.active {
+    background: var(--primary);
+    color: var(--text-white);
+}
+
+.nav-tabs {
+    border-bottom: 2px solid var(--border-color);
+}
+
+.nav-tabs .nav-link {
+    border: none;
+    border-bottom: 3px solid transparent;
+    color: var(--text-secondary);
+    font-weight: 500;
+    padding: 14px 20px;
+    margin-bottom: -2px;
+    transition: var(--transition);
+}
+
+.nav-tabs .nav-link:hover {
+    color: var(--primary);
+    border-bottom-color: var(--primary-light);
+}
+
+.nav-tabs .nav-link.active {
+    border-bottom-color: var(--primary);
+    color: var(--primary);
+    background: transparent;
 }
 
 /* ============================================
    CHART AREA
    ============================================ */
 .chart-area {
-  position: relative;
-  height: 300px;
-  width: 100%;
+    position: relative;
+    height: 300px;
+    width: 100%;
 }
 
 /* ============================================
-   PROGRESS BAR - YouTube Style
+   UTILITIES
    ============================================ */
-.progress {
-  height: 8px;
-  border-radius: 4px;
-  background-color: #e5e5e5;
+.shadow { box-shadow: var(--shadow) !important; }
+.shadow-sm { box-shadow: var(--shadow-sm) !important; }
+.shadow-lg { box-shadow: var(--shadow-lg) !important; }
+
+.rounded-lg { border-radius: var(--border-radius-lg) !important; }
+
+.bg-light { background-color: var(--bg-main) !important; }
+.bg-white { background-color: #fff !important; }
+.bg-primary { background-color: var(--primary) !important; }
+.bg-success { background-color: var(--success) !important; }
+.bg-danger { background-color: var(--danger) !important; }
+.bg-warning { background-color: var(--warning) !important; }
+.bg-info { background-color: var(--info) !important; }
+
+/* ============================================
+   SCROLLBAR
+   ============================================ */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
 }
 
-.progress-bar {
-  border-radius: 4px;
+::-webkit-scrollbar-track {
+    background: #f1f3f5;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #c1c9d6;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #a8b2c1;
 }
 
 /* ============================================
-   DROPDOWN - YouTube Style
+   STAT CARDS - Dashboard
    ============================================ */
-.dropdown-menu {
-  border-radius: 12px;
-  border: none;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-  padding: 8px 0;
+.stat-card {
+    border: none;
+    border-radius: var(--border-radius-lg);
+    padding: 24px;
+    background: #fff;
+    box-shadow: var(--shadow-sm);
+    transition: var(--transition);
 }
 
-.dropdown-item {
-  padding: 10px 16px;
-  font-size: 14px;
-  transition: background-color 0.2s;
+.stat-card:hover {
+    box-shadow: var(--shadow);
+    transform: translateY(-2px);
 }
 
-.dropdown-item:hover {
-  background-color: #f5f5f5;
+.stat-card.primary {
+    border-left: 4px solid var(--primary);
+}
+
+.stat-card.success {
+    border-left: 4px solid var(--success);
+}
+
+.stat-card.warning {
+    border-left: 4px solid var(--warning);
+}
+
+.stat-card.danger {
+    border-left: 4px solid var(--danger);
+}
+
+.stat-card .stat-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+}
+
+.stat-card .stat-icon.primary {
+    background: rgba(33, 150, 243, 0.15);
+    color: var(--primary);
+}
+
+.stat-card .stat-icon.success {
+    background: rgba(76, 175, 80, 0.15);
+    color: var(--success);
+}
+
+.stat-card .stat-icon.warning {
+    background: rgba(255, 152, 0, 0.15);
+    color: var(--warning);
+}
+
+.stat-card .stat-icon.danger {
+    background: rgba(244, 67, 54, 0.15);
+    color: var(--danger);
+}
+
+.stat-card .stat-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    line-height: 1.2;
+}
+
+.stat-card .stat-label {
+    font-size: 13px;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 500;
 }
 
 /* ============================================
-   PAGINATION - YouTube Style
+   EMPTY STATE
    ============================================ */
-.pagination .page-link {
-  border-radius: 8px;
-  margin: 0 2px;
-  border: none;
-  color: #606060;
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
 }
 
-.pagination .page-item.active .page-link {
-  background-color: #cc0000;
-  color: #fff;
+.empty-state i {
+    font-size: 64px;
+    margin-bottom: 20px;
+    color: #d1d9e6;
 }
 
-/* ============================================
-   CUSTOM UTILITIES
-   ============================================ */
-.shadow {
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1) !important;
+.empty-state h5 {
+    color: var(--text-secondary);
+    margin-bottom: 8px;
 }
 
-.rounded-lg {
-  border-radius: 12px !important;
+.empty-state p {
+    color: var(--text-muted);
 }
 
 /* ============================================
    RESPONSIVE
    ============================================ */
 @media (max-width: 768px) {
-  .card-body {
-    padding: 1rem;
-  }
-  
-  .chart-area {
-    height: 250px;
-  }
-  
-  .table-responsive {
-    border-radius: 8px;
-  }
-  
-  .btn {
-    padding: 6px 12px;
-    font-size: 13px;
-  }
+    .card-body {
+        padding: 16px;
+    }
+    
+    .chart-area {
+        height: 250px;
+    }
+    
+    .table-responsive {
+        border-radius: var(--border-radius);
+    }
+    
+    .btn {
+        padding: 8px 16px;
+    }
+    
+    h1 { font-size: 1.5rem; }
+    h2 { font-size: 1.35rem; }
+    h3 { font-size: 1.2rem; }
 }
 
 @media (max-width: 576px) {
-  h1.h3 {
-    font-size: 1.25rem;
-  }
-  
-  .card {
-    margin-bottom: 1rem;
-  }
+    .card {
+        margin-bottom: 1rem;
+    }
+    
+    .table thead th,
+    .table tbody td {
+        padding: 12px 14px;
+        font-size: 13px;
+    }
+    
+    .stat-card {
+        padding: 20px;
+    }
+    
+    .stat-card .stat-value {
+        font-size: 1.5rem;
+    }
 }
 
 /* ============================================
-   SCROLLBAR - YouTube Style
+   PAGE HEADER
    ============================================ */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+.page-header {
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border-color);
 }
 
-::-webkit-scrollbar-track {
-  background: #f1f1f1;
+.page-header h1 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0;
 }
 
-::-webkit-scrollbar-thumb {
-  background: #c1c1c1;
-  border-radius: 4px;
+.page-header .breadcrumb {
+    margin: 0;
+    padding: 0;
+    background: transparent;
 }
 
-::-webkit-scrollbar-thumb:hover {
-  background: #a1a1a1;
+.page-header .breadcrumb-item {
+    font-size: 13px;
+}
+
+.page-header .breadcrumb-item a {
+    color: var(--text-secondary);
+}
+
+.page-header .breadcrumb-item.active {
+    color: var(--primary);
 }
 
 /* ============================================
-   LIST GROUP - YouTube Style
+   QUICK ACTIONS
    ============================================ */
-.list-group-item {
-  border: none;
-  border-bottom: 1px solid #e5e5e5;
-  padding: 12px 16px;
+.quick-action {
+    display: flex;
+    align-items: center;
+    padding: 16px;
+    background: #fff;
+    border-radius: var(--border-radius-lg);
+    box-shadow: var(--shadow-sm);
+    transition: var(--transition);
+    text-decoration: none;
+    color: var(--text-primary);
 }
 
-.list-group-item:last-child {
-  border-bottom: none;
+.quick-action:hover {
+    box-shadow: var(--shadow);
+    transform: translateY(-2px);
+    color: var(--primary);
 }
 
-/* ============================================
-   NAV PILLS/TABS - YouTube Style
-   ============================================ */
-.nav-pills .nav-link {
-  border-radius: 20px;
-  color: #606060;
-  font-weight: 500;
-  padding: 8px 16px;
+.quick-action i {
+    font-size: 24px;
+    margin-right: 16px;
+    color: var(--primary);
 }
 
-.nav-pills .nav-link.active {
-  background-color: #212121;
-  color: #fff;
-}
-
-.nav-tabs .nav-link {
-  border: none;
-  border-bottom: 2px solid transparent;
-  color: #606060;
-  font-weight: 500;
-}
-
-.nav-tabs .nav-link.active {
-  border-bottom-color: #cc0000;
-  color: #cc0000;
-  background: transparent;
+.quick-action span {
+    font-weight: 500;
 }

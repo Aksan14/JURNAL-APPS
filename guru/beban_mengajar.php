@@ -415,7 +415,7 @@ require_once '../includes/header.php';
                                     <?= htmlspecialchars($libur['nama_libur']) ?>
                                     <span class="badge <?= $badge_jenis ?>"><?= ucfirst($libur['jenis']) ?></span>
                                     <?php if ($libur['id_kelas']): ?>
-                                        <span class="badge bg-dark"><?= htmlspecialchars($libur['nama_kelas']) ?></span>
+                                        <span class="badge bg-secondary"><?= htmlspecialchars($libur['nama_kelas']) ?></span>
                                     <?php else: ?>
                                         <span class="badge bg-success">Semua Kelas</span>
                                     <?php endif; ?>
@@ -439,7 +439,7 @@ require_once '../includes/header.php';
                                     <?= htmlspecialchars($jk['alasan']) ?>
                                     <span class="badge bg-primary">Max <?= $jk['max_jam'] ?> jam</span>
                                     <?php if ($jk['id_kelas']): ?>
-                                        <span class="badge bg-dark"><?= htmlspecialchars($jk['nama_kelas']) ?></span>
+                                        <span class="badge bg-secondary"><?= htmlspecialchars($jk['nama_kelas']) ?></span>
                                     <?php else: ?>
                                         <span class="badge bg-success">Semua Kelas</span>
                                     <?php endif; ?>

@@ -180,7 +180,7 @@ require_once '../includes/header.php';
     <div class="row mb-4">
         <div class="col-12">
             <div class="card shadow">
-                <div class="card-header py-3 bg-dark text-white">
+                <div class="card-header py-3 bg-primary text-white">
                     <h6 class="m-0 font-weight-bold"><i class="fas fa-chart-pie me-2"></i>Statistik Kehadiran Siswa</h6>
                 </div>
                 <div class="card-body">

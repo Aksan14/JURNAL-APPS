@@ -37,10 +37,10 @@ $display_name = $_SESSION['display_name'] ?? 'Pengguna';
 
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>/assets/css/style.css">
     
-    <!-- Google Fonts - Roboto & Audiowide -->
+    <!-- Google Fonts - Poppins -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Audiowide&family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
     <!-- Prevent sidebar flash on page load -->
     <script>
@@ -60,7 +60,7 @@ $display_name = $_SESSION['display_name'] ?? 'Pengguna';
         html.sidebar-collapsed-mode #content {
             margin-left: 72px !important;
         }
-        html.sidebar-collapsed-mode #sidebar .sidebar-header h3 {
+        html.sidebar-collapsed-mode #sidebar .sidebar-header .logo-text {
             opacity: 0 !important;
             width: 0 !important;
         }
@@ -69,20 +69,20 @@ $display_name = $_SESSION['display_name'] ?? 'Pengguna';
             display: none !important;
         }
         
-        * { font-family: 'Roboto', sans-serif; }
+        * { font-family: 'Poppins', sans-serif; }
         html, body { height: 100%; margin: 0; }
-        body { display: flex; min-height: 100vh; flex-direction: column; background-color: #f5f5f5; }
+        body { display: flex; min-height: 100vh; flex-direction: column; background-color: #f5f7fa; }
         .wrapper { display: flex; width: 100%; align-items: stretch; flex-grow: 1; min-height: 100vh; }
         
-        /* YouTube Style Sidebar */
+        /* Professional Soft Blue Sidebar */
         #sidebar { 
-            width: 240px; 
-            min-width: 240px;
-            max-width: 240px; 
-            background: #212121; 
+            width: 260px; 
+            min-width: 260px;
+            max-width: 260px; 
+            background: #5C9CE5; 
             color: #fff; 
             transition: all 0.3s ease; 
-            min-height: 100vh;
+            height: 100vh;
             padding: 0;
             position: fixed;
             top: 0;
@@ -90,6 +90,23 @@ $display_name = $_SESSION['display_name'] ?? 'Pengguna';
             z-index: 1000;
             overflow-y: auto;
             overflow-x: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        /* Scrollbar styling for sidebar */
+        #sidebar::-webkit-scrollbar {
+            width: 6px;
+        }
+        #sidebar::-webkit-scrollbar-track {
+            background: rgba(255,255,255,0.1);
+        }
+        #sidebar::-webkit-scrollbar-thumb {
+            background: rgba(255,255,255,0.3);
+            border-radius: 3px;
+        }
+        #sidebar::-webkit-scrollbar-thumb:hover {
+            background: rgba(255,255,255,0.5);
         }
         
         /* Collapsed Sidebar - Only Icons */
@@ -100,76 +117,102 @@ $display_name = $_SESSION['display_name'] ?? 'Pengguna';
         }
         
         #sidebar .sidebar-header { 
-            padding: 14px 20px; 
+            padding: 20px; 
+            display: flex;
+            align-items: center;
+            height: auto;
+            box-sizing: border-box;
+            border-bottom: 1px solid rgba(255,255,255,0.2);
+            background: #4A8AD4;
+        }
+        #sidebar .sidebar-header .logo-icon {
+            width: 42px;
+            height: 42px;
+            min-width: 42px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px;
             display: flex;
             align-items: center;
             justify-content: center;
-            height: 56px;
-            box-sizing: border-box;
-            border-bottom: 1px solid #333;
+            margin-right: 12px;
         }
-        #sidebar .sidebar-header h3 { 
-            margin: 0; 
-            font-family: 'Audiowide', cursive;
-            font-size: 14px; 
-            font-weight: 400;
-            white-space: nowrap;
+        #sidebar .sidebar-header .logo-icon i {
+            font-size: 20px;
+            color: #fff;
+        }
+        #sidebar .sidebar-header .logo-text { 
             transition: opacity 0.2s;
-            letter-spacing: 1.5px;
-            text-transform: uppercase;
         }
-        #sidebar .sidebar-header h3 .highlight {
-            color: #ff4444;
-            text-shadow: 0 0 8px rgba(255, 68, 68, 0.4);
+        #sidebar .sidebar-header .logo-text h4 {
+            margin: 0;
+            font-size: 15px;
+            font-weight: 600;
+            color: #fff;
+            line-height: 1.3;
         }
-        #sidebar .sidebar-header h3 .dark {
-            color: #666;
+        #sidebar .sidebar-header .logo-text span {
+            font-size: 11px;
+            color: rgba(255,255,255,0.7);
         }
-        #sidebar.collapsed .sidebar-header h3 { 
+        #sidebar.collapsed .sidebar-header .logo-text { 
             opacity: 0;
             width: 0;
             overflow: hidden;
         }
         #sidebar.collapsed .sidebar-header {
-            padding: 12px;
+            padding: 16px;
+            justify-content: center;
+        }
+        #sidebar.collapsed .sidebar-header .logo-icon {
+            margin-right: 0;
         }
         
         /* Navigation Items */
         #sidebar ul.components { 
-            padding: 8px; 
+            padding: 12px; 
             margin: 0;
             list-style: none;
+            flex: 1;
+            overflow-y: auto;
+            padding-bottom: 20px;
         }
         #sidebar ul li { margin: 2px 0; }
         
         #sidebar ul li a.nav-link { 
-            padding: 10px 12px; 
+            padding: 12px 16px; 
             font-size: 14px; 
             display: flex; 
             align-items: center;
-            color: #f1f1f1; 
+            color: rgba(255,255,255,0.85); 
             text-decoration: none; 
             transition: all 0.2s ease;
-            border-radius: 10px;
+            border-radius: 8px;
             font-weight: 400;
             white-space: nowrap;
             overflow: hidden;
         }
         #sidebar ul li a.nav-link i { 
-            width: 24px; 
-            min-width: 24px;
-            font-size: 18px; 
-            margin-right: 16px;
+            width: 22px; 
+            min-width: 22px;
+            font-size: 16px; 
+            margin-right: 14px;
             text-align: center;
+            color: rgba(255,255,255,0.7);
         }
         #sidebar ul li a.nav-link:hover { 
-            background: #3d3d3d; 
+            background: rgba(255,255,255,0.1); 
+            color: #fff;
+        }
+        #sidebar ul li a.nav-link:hover i {
             color: #fff;
         }
         #sidebar ul li a.nav-link.active { 
-            background: #3d3d3d; 
+            background: rgba(255,255,255,0.15); 
             color: #fff;
             font-weight: 500;
+        }
+        #sidebar ul li a.nav-link.active i {
+            color: #fff;
         }
         
         /* Collapsed nav links */
@@ -179,13 +222,13 @@ $display_name = $_SESSION['display_name'] ?? 'Pengguna';
         #sidebar.collapsed ul li a.nav-link {
             padding: 12px;
             justify-content: center;
-            border-radius: 50%;
+            border-radius: 10px;
             width: 48px;
             height: 48px;
         }
         #sidebar.collapsed ul li a.nav-link i {
             margin-right: 0;
-            font-size: 20px;
+            font-size: 18px;
         }
         #sidebar.collapsed ul li a.nav-link span {
             display: none;
@@ -206,19 +249,17 @@ $display_name = $_SESSION['display_name'] ?? 'Pengguna';
         
         /* Section Headers */
         #sidebar .nav-item-header { 
-            padding: 16px 12px 8px 12px; 
+            padding: 18px 16px 10px 16px; 
             font-size: 11px; 
-            color: #aaa; 
+            color: rgba(255,255,255,0.5); 
             text-transform: uppercase; 
-            letter-spacing: 0.5px;
+            letter-spacing: 0.8px;
             font-weight: 500;
-            border-top: 1px solid #3d3d3d;
             margin-top: 8px;
             white-space: nowrap;
             overflow: hidden;
         }
         #sidebar .nav-item-header:first-child {
-            border-top: none;
             margin-top: 0;
         }
         #sidebar.collapsed .nav-item-header {
@@ -230,14 +271,16 @@ $display_name = $_SESSION['display_name'] ?? 'Pengguna';
             content: '•••';
             font-size: 10px;
             letter-spacing: 2px;
+            color: rgba(255,255,255,0.3);
         }
         
         /* Badge */
         #sidebar .badge {
             font-size: 10px;
-            padding: 3px 6px;
-            border-radius: 10px;
+            padding: 3px 8px;
+            border-radius: 6px;
             margin-left: auto;
+            background: rgba(255,255,255,0.2) !important;
         }
         
         /* Content Area */
@@ -246,8 +289,8 @@ $display_name = $_SESSION['display_name'] ?? 'Pengguna';
             padding: 0; 
             min-height: 100vh; 
             transition: all 0.3s ease; 
-            background-color: #f5f5f5;
-            margin-left: 240px;
+            background-color: #f5f7fa;
+            margin-left: 260px;
             display: flex;
             flex-direction: column;
         }
@@ -255,16 +298,16 @@ $display_name = $_SESSION['display_name'] ?? 'Pengguna';
             margin-left: 72px;
         }
         
-        /* Navbar - Dark Theme matching Sidebar */
+        /* Navbar - White Clean Style */
         .navbar { 
-            padding: 0 16px; 
-            background: #212121; 
-            border: none; 
-            box-shadow: none;
+            padding: 0 20px; 
+            background: #fff; 
+            border-bottom: 1px solid #e3e8ef; 
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
             position: sticky;
             top: 0;
             z-index: 1001;
-            height: 56px;
+            height: 60px;
             display: flex;
             align-items: center;
         }
@@ -272,10 +315,10 @@ $display_name = $_SESSION['display_name'] ?? 'Pengguna';
         #sidebarCollapse {
             background: transparent;
             border: none;
-            color: #fff;
-            font-size: 20px;
-            padding: 8px;
-            border-radius: 50%;
+            color: #5C9CE5;
+            font-size: 18px;
+            padding: 10px;
+            border-radius: 8px;
             transition: all 0.2s;
             width: 40px;
             height: 40px;
@@ -285,7 +328,7 @@ $display_name = $_SESSION['display_name'] ?? 'Pengguna';
             cursor: pointer;
         }
         #sidebarCollapse:hover {
-            background: #3d3d3d;
+            background: rgba(92, 156, 229, 0.12);
         }
         #sidebarCollapse i {
             transition: transform 0.3s ease;
@@ -297,10 +340,10 @@ $display_name = $_SESSION['display_name'] ?? 'Pengguna';
         
         /* User Avatar */
         .user-avatar {
-            width: 32px;
-            height: 32px;
-            background: #cc0000;
-            border-radius: 50%;
+            width: 36px;
+            height: 36px;
+            background: #5C9CE5;
+            border-radius: 8px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -309,35 +352,37 @@ $display_name = $_SESSION['display_name'] ?? 'Pengguna';
         }
         
         .navbar .nav-link {
-            color: #fff;
+            color: #37474F;
             font-size: 14px;
-            padding: 8px 12px;
-            border-radius: 20px;
+            padding: 8px 14px;
+            border-radius: 8px;
             transition: background 0.2s;
+            font-weight: 500;
         }
         
         .navbar .nav-link:hover {
-            background: #3d3d3d;
-            color: #fff;
+            background: rgba(92, 156, 229, 0.1);
+            color: #5C9CE5;
         }
         
         .navbar .dropdown-toggle::after {
             margin-left: 8px;
-            color: #fff;
+            color: #607D8B;
         }
         
         .navbar .badge {
-            background: #3d3d3d !important;
+            background: #5C9CE5 !important;
             color: #fff;
+            font-weight: 500;
         }
         
         .dropdown-header {
-            padding: 12px 16px;
+            padding: 14px 18px;
         }
         
         /* Main Content */
         main {
-            padding: 20px;
+            padding: 24px;
             flex: 1 0 auto;
         }
         
@@ -359,26 +404,27 @@ $display_name = $_SESSION['display_name'] ?? 'Pengguna';
             width: 4px;
         }
         #sidebar::-webkit-scrollbar-thumb {
-            background: #3d3d3d;
+            background: rgba(255,255,255,0.2);
             border-radius: 4px;
         }
         
         @media (max-width: 768px) {
             #sidebar { 
-                margin-left: -240px; 
+                margin-left: -260px; 
             }
             #sidebar.active { 
                 margin-left: 0; 
-                width: 240px;
-                min-width: 240px;
-                max-width: 240px;
+                width: 260px;
+                min-width: 260px;
+                max-width: 260px;
             }
-            #sidebar.active .sidebar-header h3 {
+            #sidebar.active .sidebar-header .logo-text {
                 opacity: 1;
                 width: auto;
             }
             #content { margin-left: 0 !important; }
-            .navbar { padding: 0 10px; }
+            .navbar { padding: 0 16px; }
+            main { padding: 16px; }
         }
     </style>
 </head>
@@ -390,7 +436,13 @@ $display_name = $_SESSION['display_name'] ?? 'Pengguna';
     
     <nav id="sidebar">
         <div class="sidebar-header">
-            <h3><span class="highlight">MANAJEMEN</span><span class="dark">JURNAL</span></h3>
+            <div class="logo-icon">
+                <i class="fas fa-book-open"></i>
+            </div>
+            <div class="logo-text">
+                <h4>Sistem Jurnal</h4>
+                <span>Manajemen Pembelajaran</span>
+            </div>
         </div>
 
         <?php

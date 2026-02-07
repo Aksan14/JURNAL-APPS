@@ -1,13 +1,13 @@
 <?php
 /*
 File: footer.php
-YouTube Style Layout - Sticky Footer
+Professional Blue Navy Layout - Sticky Footer
 */
 ?>
         </main>
-        <footer class="footer py-3 bg-light border-top" style="margin-top: auto;">
+        <footer class="footer py-3 border-top" style="margin-top: auto; background-color: #fff;">
             <div class="container-fluid text-center">
-                <span class="text-muted">Manajemen Jurnal &copy; <?php echo date('Y'); ?></span>
+                <span class="text-muted" style="font-size: 13px;">Sistem Jurnal - Manajemen Pembelajaran &copy; <?php echo date('Y'); ?></span>
             </div>
         </footer>
     </div>

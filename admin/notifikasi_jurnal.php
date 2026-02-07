@@ -287,25 +287,25 @@ require_once '../includes/header.php';
     padding: 0.5rem 1.5rem;
     border-radius: 25px;
 }
-.hari-senin { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
-.hari-selasa { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; }
-.hari-rabu { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white; }
-.hari-kamis { background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); color: white; }
-.hari-jumat { background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); color: white; }
-.hari-sabtu { background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%); color: #333; }
+.hari-senin { background: #5C9CE5; color: white; }
+.hari-selasa { background: #6BA8E8; color: white; }
+.hari-rabu { background: #7AB4EB; color: white; }
+.hari-kamis { background: #4A8AD4; color: white; }
+.hari-jumat { background: #66BB6A; color: white; }
+.hari-sabtu { background: #4DB6AC; color: white; }
 .kelas-card {
-    border-left: 4px solid #dc3545;
+    border-left: 4px solid #EF5350;
     border-radius: 10px;
 }
 .kelas-card.complete {
-    border-left-color: #28a745;
+    border-left-color: #66BB6A;
 }
 .guru-card {
-    border-left: 4px solid #ffc107;
+    border-left: 4px solid #5C9CE5;
     border-radius: 10px;
 }
 .jam-badge {
-    background: #ff5722;
+    background: #EF5350;
     color: white;
     padding: 0.3rem 0.6rem;
     border-radius: 5px;
@@ -313,15 +313,15 @@ require_once '../includes/header.php';
     font-weight: bold;
 }
 .jam-badge.filled {
-    background: #28a745;
+    background: #66BB6A;
 }
 .progress-ring {
     width: 120px;
     height: 120px;
 }
-.table-notif th { background: #212121; color: white; }
+.table-notif th { background: #5C9CE5; color: white; }
 .alert-libur {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: #5C9CE5;
     color: white;
     border: none;
     border-radius: 15px;
@@ -339,12 +339,12 @@ require_once '../includes/header.php';
 .modal-blokir-custom .modal-content {
     border: none;
     border-radius: 10px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
 }
 
 /* Modal Header */
 .modal-blokir-custom .modal-header {
-    background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+    background: #EF5350;
     color: white;
     padding: 1.25rem 1.75rem;
     border-bottom: none;
@@ -364,17 +364,17 @@ require_once '../includes/header.php';
 
 /* Alert Warning Box */
 .blokir-alert {
-    background: linear-gradient(135deg, #fff9e6 0%, #fff3cd 100%);
-    border-left: 4px solid #ffc107;
+    background: #FFF8E1;
+    border-left: 4px solid #FFB74D;
     border-radius: 6px;
     padding: 0.9rem 1rem;
     margin-bottom: 1.5rem;
     font-size: 0.9rem;
-    color: #856404;
+    color: #F57C00;
 }
 
 .blokir-alert i {
-    color: #ffc107;
+    color: #FFB74D;
     font-size: 1.1rem;
     vertical-align: middle;
 }
@@ -439,9 +439,9 @@ require_once '../includes/header.php';
 
 .blokir-form-select:focus,
 .blokir-form-textarea:focus {
-    border-color: #dc3545;
+    border-color: #EF5350;
     outline: none;
-    box-shadow: 0 0 0 0.15rem rgba(220, 53, 69, 0.2);
+    box-shadow: 0 0 0 0.15rem rgba(239, 83, 80, 0.2);
 }
 
 .blokir-form-textarea {
@@ -616,7 +616,7 @@ require_once '../includes/header.php';
                                 <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
                                       fill="none" stroke="#eee" stroke-width="3"/>
                                 <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                                      fill="none" stroke="<?= $persentase >= 80 ? '#28a745' : ($persentase >= 50 ? '#ffc107' : '#dc3545') ?>" 
+                                      fill="none" stroke="<?= $persentase >= 80 ? '#66BB6A' : ($persentase >= 50 ? '#FFB74D' : '#EF5350') ?>" 
                                       stroke-width="3" stroke-dasharray="<?= $persentase ?>, 100"/>
                             </svg>
                             <div class="position-absolute top-50 start-50 translate-middle">
@@ -632,7 +632,7 @@ require_once '../includes/header.php';
 
     <!-- Section Guru Diblokir -->
     <?php if (!empty($guru_diblokir)): ?>
-    <div class="card shadow-sm mb-4 border-left-warning" style="border-left: 4px solid #ffc107;">
+    <div class="card shadow-sm mb-4 border-left-warning" style="border-left: 4px solid #FFB74D;">
         <div class="card-header bg-white d-flex justify-content-between align-items-center">
             <h6 class="mb-0"><i class="fas fa-user-slash text-warning me-2"></i>Guru Tidak Masuk (<?= $total_guru_diblokir ?> orang)</h6>
         </div>
@@ -663,12 +663,12 @@ require_once '../includes/header.php';
                             </td>
                             <td><small><?= htmlspecialchars($gb['keterangan'] ?? '-') ?></small></td>
                             <td>
-                                <button type="button" 
+                                <a href="?buka_blokir=<?= $gb['id'] ?>&tanggal=<?= $tanggal_filter ?>&view=<?= $view_mode ?>" 
                                    class="btn btn-sm btn-success" 
                                    title="Buka Blokir - Guru bisa isi jurnal lagi"
-                                   onclick="konfirmasiBukaBlokir('<?= $gb['id'] ?>', '<?= $tanggal_filter ?>', '<?= $view_mode ?>', '<?= htmlspecialchars($gb['nama_guru']) ?>')">
+                                   onclick="return confirm('Yakin buka blokir? Guru akan dapat mengisi jurnal kembali.')">
                                     <i class="fas fa-unlock"></i>
-                                </button>
+                                </a>
                             </td>
                         </tr>
                         <?php endforeach; ?>
@@ -743,7 +743,7 @@ require_once '../includes/header.php';
                                     <form method="POST" style="margin: 0;">
                                         <div class="modal-content" style="border: none; border-radius: 12px; overflow: hidden;">
                                             <!-- HEADER -->
-                                            <div style="background: linear-gradient(135deg, #dc3545 0%, #c82333 100%); color: white; padding: 1.25rem 1.5rem; border-bottom: none;">
+                                            <div style="background: #EF5350; color: white; padding: 1.25rem 1.5rem; border-bottom: none;">
                                                 <div style="display: flex; justify-content: space-between; align-items: center;">
                                                     <h5 style="margin: 0; font-size: 1.1rem; font-weight: 600;">
                                                         <i class="fas fa-user-slash" style="margin-right: 0.5rem;"></i>Blokir Jurnal Guru
@@ -755,8 +755,8 @@ require_once '../includes/header.php';
                                             <!-- BODY -->
                                             <div style="padding: 1.5rem; background: white;">
                                                 <!-- Alert -->
-                                                <div style="background: #fff9e6; border-left: 4px solid #ffc107; border-radius: 6px; padding: 0.85rem; margin-bottom: 1.25rem; color: #856404; font-size: 0.9rem;">
-                                                    <i class="fas fa-exclamation-triangle" style="color: #ffc107; margin-right: 0.5rem;"></i>
+                                                <div style="background: #FFF8E1; border-left: 4px solid #FFB74D; border-radius: 6px; padding: 0.85rem; margin-bottom: 1.25rem; color: #F57C00; font-size: 0.9rem;">
+                                                    <i class="fas fa-exclamation-triangle" style="color: #FFB74D; margin-right: 0.5rem;"></i>
                                                     <strong>Perhatian:</strong> Guru yang diblokir tidak akan bisa mengisi jurnal pada tanggal tersebut.
                                                 </div>
                                                 
@@ -778,7 +778,7 @@ require_once '../includes/header.php';
                                                 <!-- Status Kehadiran -->
                                                 <div style="margin-bottom: 1.15rem;">
                                                     <label style="display: block; font-weight: 600; font-size: 0.95rem; color: #495057; margin-bottom: 0.5rem;">
-                                                        Status Kehadiran <span style="color: #dc3545;">*</span>
+                                                        Status Kehadiran <span style="color: #EF5350;">*</span>
                                                     </label>
                                                     <select name="status_kehadiran" required class="form-select" style="width: 100%; padding: 0.65rem 0.85rem; font-size: 0.95rem; border: 2px solid #ced4da; border-radius: 6px;">
                                                         <option value="">-- Pilih Status --</option>
@@ -869,7 +869,7 @@ require_once '../includes/header.php';
                 <form method="POST" style="margin: 0;">
                     <div class="modal-content" style="border: none; border-radius: 12px; overflow: hidden;">
                         <!-- HEADER -->
-                        <div style="background: linear-gradient(135deg, #dc3545 0%, #c82333 100%); color: white; padding: 1.25rem 1.5rem; border-bottom: none;">
+                        <div style="background: #EF5350; color: white; padding: 1.25rem 1.5rem; border-bottom: none;">
                             <div style="display: flex; justify-content: space-between; align-items: center;">
                                 <h5 style="margin: 0; font-size: 1.1rem; font-weight: 600;">
                                     <i class="fas fa-user-slash" style="margin-right: 0.5rem;"></i>Blokir Jurnal Guru
@@ -881,8 +881,8 @@ require_once '../includes/header.php';
                         <!-- BODY -->
                         <div style="padding: 1.5rem; background: white;">
                             <!-- Alert -->
-                            <div style="background: #fff9e6; border-left: 4px solid #ffc107; border-radius: 6px; padding: 0.85rem; margin-bottom: 1.25rem; color: #856404; font-size: 0.9rem;">
-                                <i class="fas fa-exclamation-triangle" style="color: #ffc107; margin-right: 0.5rem;"></i>
+                            <div style="background: #FFF8E1; border-left: 4px solid #FFB74D; border-radius: 6px; padding: 0.85rem; margin-bottom: 1.25rem; color: #F57C00; font-size: 0.9rem;">
+                                <i class="fas fa-exclamation-triangle" style="color: #FFB74D; margin-right: 0.5rem;"></i>
                                 <strong>Perhatian:</strong> Guru yang diblokir tidak akan bisa mengisi jurnal pada tanggal tersebut.
                             </div>
                             
@@ -904,7 +904,7 @@ require_once '../includes/header.php';
                             <!-- Status Kehadiran -->
                             <div style="margin-bottom: 1.15rem;">
                                 <label style="display: block; font-weight: 600; font-size: 0.95rem; color: #495057; margin-bottom: 0.5rem;">
-                                    Status Kehadiran <span style="color: #dc3545;">*</span>
+                                    Status Kehadiran <span style="color: #EF5350;">*</span>
                                 </label>
                                 <select name="status_kehadiran" required class="form-select" style="width: 100%; padding: 0.65rem 0.85rem; font-size: 0.95rem; border: 2px solid #ced4da; border-radius: 6px;">
                                     <option value="">-- Pilih Status --</option>
@@ -1014,40 +1014,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 });
-
-// Konfirmasi buka blokir dengan modal
-function konfirmasiBukaBlokir(id, tanggal, view, namaGuru) {
-    document.getElementById('bukaBlokir_namaGuru').textContent = namaGuru;
-    document.getElementById('bukaBlokir_link').href = '?buka_blokir=' + id + '&tanggal=' + tanggal + '&view=' + view;
-    var modal = new bootstrap.Modal(document.getElementById('modalKonfirmasiBukaBlokir'));
-    modal.show();
-}
 </script>
-
-<!-- Modal Konfirmasi Buka Blokir -->
-<div class="modal fade" id="modalKonfirmasiBukaBlokir" tabindex="-1" aria-labelledby="modalKonfirmasiBukaBlokir" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header bg-success text-white">
-                <h5 class="modal-title"><i class="fas fa-unlock me-2"></i>Konfirmasi Buka Blokir</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body text-center py-4">
-                <i class="fas fa-user-check fa-3x text-success mb-3"></i>
-                <p class="mb-2">Yakin ingin membuka blokir untuk guru:</p>
-                <h5 class="fw-bold text-dark" id="bukaBlokir_namaGuru"></h5>
-                <p class="text-muted small mt-3 mb-0">Guru akan dapat mengisi jurnal kembali pada tanggal tersebut.</p>
-            </div>
-            <div class="modal-footer justify-content-center">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                    <i class="fas fa-times me-1"></i>Batal
-                </button>
-                <a href="#" id="bukaBlokir_link" class="btn btn-success">
-                    <i class="fas fa-unlock me-1"></i>Ya, Buka Blokir
-                </a>
-            </div>
-        </div>
-    </div>
-</div>
 
 <?php require_once '../includes/footer.php'; ?>

@@ -156,7 +156,7 @@ require_once '../includes/header.php';
     <div class="d-sm-flex align-items-center justify-content-between mb-4">
         <h1 class="h3 mb-0 text-gray-800"><i class="fas fa-calendar-alt me-2"></i>Kelola Hari Libur & Jam Khusus</h1>
         <div>
-            <button class="btn btn-danger btn-sm me-2" data-bs-toggle="modal" data-bs-target="#modalTambahLibur">
+            <button class="btn btn-primary btn-sm me-2" data-bs-toggle="modal" data-bs-target="#modalTambahLibur">
                 <i class="fas fa-plus"></i> Tambah Hari Libur
             </button>
             <button class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#modalTambahJam">
@@ -307,7 +307,7 @@ require_once '../includes/header.php';
                                 if ($is_jam_khusus) {
                                     foreach ($jam_khusus_map[$day] as $jk) {
                                         echo '<div class="small mt-1"><i class="fas fa-clock"></i> ' . htmlspecialchars($jk['alasan']);
-                                        echo '<br><span class="badge bg-dark" style="font-size:0.65rem">Maks ' . $jk['max_jam'] . ' jam</span>';
+                                        echo '<br><span class="badge bg-secondary" style="font-size:0.65rem">Maks ' . $jk['max_jam'] . ' jam</span>';
                                         if ($jk['id_kelas']) {
                                             echo ' <span class="badge bg-info" style="font-size:0.65rem">' . htmlspecialchars($jk['nama_kelas']) . '</span>';
                                         }

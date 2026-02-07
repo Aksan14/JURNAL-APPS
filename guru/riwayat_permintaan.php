@@ -88,7 +88,7 @@ require_once '../includes/header.php';
         <a href="?status=pending" class="btn btn-<?= $filter_status === 'pending' ? 'warning' : 'outline-warning' ?>">
             <i class="bi bi-clock me-1"></i>Pending
             <?php if ($stats['pending'] > 0): ?>
-            <span class="badge bg-dark"><?= $stats['pending'] ?></span>
+            <span class="badge bg-secondary"><?= $stats['pending'] ?></span>
             <?php endif; ?>
         </a>
         <a href="?status=approved" class="btn btn-<?= $filter_status === 'approved' ? 'success' : 'outline-success' ?>">

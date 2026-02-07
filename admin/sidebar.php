@@ -2,7 +2,7 @@
 /*
 File: admin/sidebar.php
 Lokasi: /jurnal_app/admin/sidebar.php
-YouTube Style Dark Sidebar
+Professional Blue Navy Sidebar - Admin
 */
 
 global $current_page;

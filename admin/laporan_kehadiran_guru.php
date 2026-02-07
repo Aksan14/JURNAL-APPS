@@ -69,7 +69,7 @@ $sql_stat = "
         SUM(CASE WHEN status_kehadiran = 'izin' THEN 1 ELSE 0 END) as total_izin,
         SUM(CASE WHEN status_kehadiran = 'cuti' THEN 1 ELSE 0 END) as total_cuti,
         COUNT(DISTINCT id_guru) as total_guru_affected
-    FROM tbl_kehadiran_guru
+    FROM tbl_kehadiran_guru k
     $where
 ";
 

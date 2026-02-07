@@ -360,7 +360,7 @@ $daftar_bulan = [ '01'=>'Jan','02'=>'Feb','03'=>'Mar','04'=>'Apr','05'=>'Mei','0
         <div class="row g-3 mb-4">
             <?php if (count($daftar_libur_bulan) > 0): ?>
             <div class="col-md-4">
-                <div class="alert alert-warning mb-0 h-100 shadow-sm" style="border-left: 4px solid #ffc107;">
+                <div class="alert alert-warning mb-0 h-100 shadow-sm" style="border-left: 4px solid #FFB74D;">
                     <div class="d-flex align-items-center mb-3">
                         <i class="fas fa-calendar-times fa-2x me-3 text-warning"></i>
                         <div>
@@ -383,7 +383,7 @@ $daftar_bulan = [ '01'=>'Jan','02'=>'Feb','03'=>'Mar','04'=>'Apr','05'=>'Mei','0
                                 <br>
                                 <span class="badge <?= $badge_jenis ?> mt-1"><?= ucfirst($libur['jenis']) ?></span>
                                 <?php if ($libur['id_kelas']): ?>
-                                    <span class="badge bg-dark mt-1"><?= htmlspecialchars($libur['nama_kelas']) ?></span>
+                                    <span class="badge bg-secondary mt-1"><?= htmlspecialchars($libur['nama_kelas']) ?></span>
                                 <?php else: ?>
                                     <span class="badge bg-success mt-1">Semua Kelas</span>
                                 <?php endif; ?>
@@ -396,7 +396,7 @@ $daftar_bulan = [ '01'=>'Jan','02'=>'Feb','03'=>'Mar','04'=>'Apr','05'=>'Mei','0
             
             <?php if (count($daftar_kehadiran_guru) > 0): ?>
             <div class="col-md-4">
-                <div class="alert alert-danger mb-0 h-100 shadow-sm" style="border-left: 4px solid #dc3545;">
+                <div class="alert alert-danger mb-0 h-100 shadow-sm" style="border-left: 4px solid #EF5350;">
                     <div class="d-flex align-items-center mb-3">
                         <i class="fas fa-user-times fa-2x me-3 text-danger"></i>
                         <div>
@@ -433,7 +433,7 @@ $daftar_bulan = [ '01'=>'Jan','02'=>'Feb','03'=>'Mar','04'=>'Apr','05'=>'Mei','0
             
             <?php if (count($daftar_jam_khusus_bulan) > 0): ?>
             <div class="col-md-4">
-                <div class="alert alert-info mb-0 h-100 shadow-sm" style="border-left: 4px solid #0dcaf0;">
+                <div class="alert alert-info mb-0 h-100 shadow-sm" style="border-left: 4px solid #0277bd;">
                     <div class="d-flex align-items-center mb-3">
                         <i class="fas fa-clock fa-2x me-3 text-info"></i>
                         <div>
@@ -451,7 +451,7 @@ $daftar_bulan = [ '01'=>'Jan','02'=>'Feb','03'=>'Mar','04'=>'Apr','05'=>'Mei','0
                                 <br>
                                 <span class="badge bg-primary mt-1">Max <?= $jk['max_jam'] ?> jam</span>
                                 <?php if ($jk['id_kelas']): ?>
-                                    <span class="badge bg-dark mt-1"><?= htmlspecialchars($jk['nama_kelas']) ?></span>
+                                    <span class="badge bg-secondary mt-1"><?= htmlspecialchars($jk['nama_kelas']) ?></span>
                                 <?php else: ?>
                                     <span class="badge bg-success mt-1">Semua Kelas</span>
                                 <?php endif; ?>

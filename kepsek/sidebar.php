@@ -1,7 +1,7 @@
 <?php
 /*
 File: kepsek/sidebar.php
-Sidebar untuk Kepala Sekolah
+Professional Blue Navy Sidebar - Kepala Sekolah
 */
 global $current_page;
 ?>

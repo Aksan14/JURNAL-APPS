@@ -207,14 +207,14 @@ require_once '../includes/header.php';
     font-weight: 600;
     margin-bottom: 0.5rem;
 }
-.hari-senin { background: #e3f2fd; color: #1565c0; }
-.hari-selasa { background: #f3e5f5; color: #7b1fa2; }
-.hari-rabu { background: #e8f5e9; color: #2e7d32; }
-.hari-kamis { background: #fff3e0; color: #e65100; }
-.hari-jumat { background: #fce4ec; color: #c2185b; }
-.hari-sabtu { background: #e0f7fa; color: #00838f; }
+.hari-senin { background: #E3F2FD; color: #1976D2; }
+.hari-selasa { background: #E1F5FE; color: #0288D1; }
+.hari-rabu { background: #E0F7FA; color: #0097A7; }
+.hari-kamis { background: #E0F2F1; color: #00897B; }
+.hari-jumat { background: #E8F5E9; color: #388E3C; }
+.hari-sabtu { background: #FFF3E0; color: #F57C00; }
 .jam-badge {
-    background: #ff5722;
+    background: #EF5350;
     color: white;
     padding: 0.2rem 0.5rem;
     border-radius: 0.25rem;
@@ -233,22 +233,22 @@ require_once '../includes/header.php';
 }
 .jadwal-item:hover { background: #f0f0f0; }
 .view-toggle .btn.active {
-    background-color: #cc0000;
+    background-color: #5C9CE5;
     color: white;
-    border-color: #cc0000;
+    border-color: #5C9CE5;
 }
 .stats-card {
     border-radius: 10px;
     border: none;
     box-shadow: 0 2px 10px rgba(0,0,0,0.1);
 }
-.table-jadwal th { background: #212121; color: white; }
+.table-jadwal th { background: #5C9CE5; color: white; }
 </style>
 
 <div class="container-fluid">
     <div class="d-sm-flex align-items-center justify-content-between mb-4">
         <h1 class="h3 mb-0 text-gray-800"><i class="fas fa-calendar-alt me-2"></i>Kelola Jadwal Mengajar</h1>
-        <button class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#modalTambah">
+        <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modalTambah">
             <i class="fas fa-plus"></i> Tambah Jadwal
         </button>
     </div>
@@ -265,7 +265,7 @@ require_once '../includes/header.php';
 
     <!-- Filter -->
     <div class="card shadow mb-4">
-        <div class="card-header py-3 bg-dark text-white">
+        <div class="card-header py-3 bg-primary text-white">
             <h6 class="m-0 font-weight-bold"><i class="fas fa-filter me-2"></i>Filter & Tampilan</h6>
         </div>
         <div class="card-body">
@@ -387,7 +387,7 @@ require_once '../includes/header.php';
     <!-- View Jadwal Per Kelas -->
     <?php foreach($grouped_by_kelas_hari as $kelas => $hari_data): ?>
     <div class="card jadwal-card shadow">
-        <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
             <span><i class="fas fa-school me-2"></i><?= htmlspecialchars($kelas) ?></span>
             <span class="badge bg-light text-dark"><?= array_sum(array_map('count', $hari_data)) ?> jadwal</span>
         </div>
@@ -441,9 +441,9 @@ require_once '../includes/header.php';
     <?php else: ?>
     <!-- View Tabel -->
     <div class="card shadow">
-        <div class="card-header bg-dark text-white py-3 d-flex justify-content-between align-items-center">
+        <div class="card-header bg-primary text-white py-3 d-flex justify-content-between align-items-center">
             <h6 class="m-0 font-weight-bold"><i class="fas fa-table me-2"></i>Data Jadwal Mengajar</h6>
-            <input type="text" id="searchInput" class="form-control form-control-sm bg-dark text-white border-secondary" style="max-width: 250px;" placeholder="Cari...">
+            <input type="text" id="searchInput" class="form-control form-control-sm" style="max-width: 250px; background: rgba(255,255,255,0.15); border-color: rgba(255,255,255,0.3); color: white;" placeholder="Cari...">
         </div>
         <div class="card-body">
             <div class="table-responsive">
@@ -496,7 +496,7 @@ require_once '../includes/header.php';
         <?php if ($filter_guru || $filter_mapel || $filter_kelas || $filter_hari): ?>
             <a href="manage_mengajar.php" class="btn btn-outline-primary">Reset Filter</a>
         <?php else: ?>
-            <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#modalTambah">
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalTambah">
                 <i class="fas fa-plus"></i> Tambah Jadwal Pertama
             </button>
         <?php endif; ?>
@@ -563,7 +563,7 @@ require_once '../includes/header.php';
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-                <button type="submit" name="add_mengajar" class="btn btn-danger">Simpan Jadwal</button>
+                <button type="submit" name="add_mengajar" class="btn btn-success">Simpan Jadwal</button>
             </div>
         </form>
     </div>
