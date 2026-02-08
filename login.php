@@ -137,22 +137,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             margin-bottom: 36px;
         }
         
-        .logo-icon {
-            width: 72px;
-            height: 72px;
-            background: #5C9CE5;
-            border-radius: 16px;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            margin-bottom: 20px;
-        }
-        
-        .logo-icon i {
-            font-size: 32px;
-            color: #fff;
-        }
-        
         .login-header h1 {
             font-size: 1.5rem;
             font-weight: 600;
@@ -374,13 +358,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             .login-header h1 {
                 font-size: 1.35rem;
             }
-            .logo-icon {
-                width: 64px;
-                height: 64px;
-            }
-            .logo-icon i {
-                font-size: 28px;
-            }
         }
     </style>
 </head>
@@ -388,9 +365,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     <div class="login-container">
         <div class="login-card">
             <div class="login-header">
-                <div class="logo-icon">
-                    <i class="fas fa-book-open"></i>
-                </div>
                 <h1>Sistem Jurnal</h1>
                 <p>Manajemen Pembelajaran Digital</p>
             </div>

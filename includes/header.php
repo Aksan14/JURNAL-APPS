@@ -125,21 +125,6 @@ $display_name = $_SESSION['display_name'] ?? 'Pengguna';
             border-bottom: 1px solid rgba(255,255,255,0.2);
             background: #4A8AD4;
         }
-        #sidebar .sidebar-header .logo-icon {
-            width: 42px;
-            height: 42px;
-            min-width: 42px;
-            background: rgba(255,255,255,0.1);
-            border-radius: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-right: 12px;
-        }
-        #sidebar .sidebar-header .logo-icon i {
-            font-size: 20px;
-            color: #fff;
-        }
         #sidebar .sidebar-header .logo-text { 
             transition: opacity 0.2s;
         }
@@ -162,9 +147,6 @@ $display_name = $_SESSION['display_name'] ?? 'Pengguna';
         #sidebar.collapsed .sidebar-header {
             padding: 16px;
             justify-content: center;
-        }
-        #sidebar.collapsed .sidebar-header .logo-icon {
-            margin-right: 0;
         }
         
         /* Navigation Items */
@@ -436,9 +418,6 @@ $display_name = $_SESSION['display_name'] ?? 'Pengguna';
     
     <nav id="sidebar">
         <div class="sidebar-header">
-            <div class="logo-icon">
-                <i class="fas fa-book-open"></i>
-            </div>
             <div class="logo-text">
                 <h4>Sistem Jurnal</h4>
                 <span>Manajemen Pembelajaran</span>

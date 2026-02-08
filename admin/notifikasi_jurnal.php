@@ -663,12 +663,11 @@ require_once '../includes/header.php';
                             </td>
                             <td><small><?= htmlspecialchars($gb['keterangan'] ?? '-') ?></small></td>
                             <td>
-                                <a href="?buka_blokir=<?= $gb['id'] ?>&tanggal=<?= $tanggal_filter ?>&view=<?= $view_mode ?>" 
-                                   class="btn btn-sm btn-success" 
+                                <button type="button" class="btn btn-sm btn-success" 
                                    title="Buka Blokir - Guru bisa isi jurnal lagi"
-                                   onclick="return confirm('Yakin buka blokir? Guru akan dapat mengisi jurnal kembali.')">
+                                   onclick="showConfirmBukaBlokir('<?= $gb['id'] ?>', '<?= $tanggal_filter ?>', '<?= $view_mode ?>', '<?= htmlspecialchars($gb['nama_guru'], ENT_QUOTES) ?>')">
                                     <i class="fas fa-unlock"></i>
-                                </a>
+                                </button>
                             </td>
                         </tr>
                         <?php endforeach; ?>
@@ -1014,6 +1013,50 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 });
+
+// Custom confirm dialog untuk buka blokir
+function showConfirmBukaBlokir(id, tanggal, view, namaGuru) {
+    document.getElementById('confirmNamaGuru').textContent = namaGuru;
+    document.getElementById('confirmBukaBtn').href = '?buka_blokir=' + id + '&tanggal=' + tanggal + '&view=' + view;
+    var modal = new bootstrap.Modal(document.getElementById('modalConfirmBukaBlokir'));
+    modal.show();
+}
 </script>
+
+<!-- Modal Konfirmasi Buka Blokir -->
+<div class="modal fade" id="modalConfirmBukaBlokir" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 420px;">
+        <div class="modal-content" style="border: none; border-radius: 16px; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.15);">
+            <!-- Header -->
+            <div style="background: linear-gradient(135deg, #5C9CE5 0%, #4A8AD4 100%); color: white; padding: 1.5rem; text-align: center;">
+                <div style="width: 60px; height: 60px; background: rgba(255,255,255,0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem;">
+                    <i class="fas fa-unlock-alt" style="font-size: 1.5rem;"></i>
+                </div>
+                <h5 style="margin: 0; font-weight: 600; font-size: 1.1rem;">Konfirmasi Buka Blokir</h5>
+            </div>
+            <!-- Body -->
+            <div style="padding: 1.5rem; text-align: center; background: #fff;">
+                <p style="color: #5a6a85; font-size: 0.95rem; margin: 0;">
+                    Yakin ingin membuka blokir untuk guru<br>
+                    <strong id="confirmNamaGuru" style="color: #212529;"></strong>?
+                </p>
+                <p style="color: #8898aa; font-size: 0.85rem; margin-top: 0.5rem;">
+                    Guru akan dapat mengisi jurnal kembali.
+                </p>
+            </div>
+            <!-- Footer -->
+            <div style="padding: 1rem 1.5rem 1.5rem; background: #fff; display: flex; gap: 0.75rem;">
+                <button type="button" class="btn" data-bs-dismiss="modal" 
+                        style="flex: 1; padding: 0.75rem; border-radius: 10px; background: #f1f3f4; color: #5a6a85; border: none; font-weight: 500; transition: all 0.2s;">
+                    <i class="fas fa-times me-1"></i> Batal
+                </button>
+                <a href="#" id="confirmBukaBtn" class="btn" 
+                   style="flex: 1; padding: 0.75rem; border-radius: 10px; background: linear-gradient(135deg, #5C9CE5 0%, #4A8AD4 100%); color: white; border: none; font-weight: 500; text-decoration: none; display: flex; align-items: center; justify-content: center; transition: all 0.2s;">
+                    <i class="fas fa-unlock me-1"></i> Ya, Buka Blokir
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
 
 <?php require_once '../includes/footer.php'; ?>

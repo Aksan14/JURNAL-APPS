@@ -289,17 +289,10 @@ a:hover {
 .form-select {
     border-radius: var(--border-radius);
     border: 1px solid var(--border-color);
-    padding-top: 10px;
-    padding-bottom: 10px;
-    padding-left: 14px;
-    padding-right: 2.5rem;
     font-size: 14px;
     transition: var(--transition);
     background-color: #fff;
     color: var(--text-primary);
-    line-height: 1.5;
-    height: auto;
-    min-height: 42px;
 }
 
 .form-control:hover, .form-select:hover {
@@ -316,18 +309,10 @@ a:hover {
 .form-control-sm {
     padding: 6px 10px;
     font-size: 13px;
-    min-height: auto;
 }
 
 .form-select-sm {
-    padding-top: 6px;
-    padding-bottom: 6px;
-    padding-left: 10px;
-    padding-right: 2rem;
     font-size: 13px;
-    line-height: 1.5;
-    min-height: 32px;
-    height: auto;
 }
 
 .form-control::placeholder {
